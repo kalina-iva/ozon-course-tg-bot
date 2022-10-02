@@ -89,7 +89,7 @@ func Test_OnAllCatCommand_NoCategories(t *testing.T) {
 	model := New(sender, repo)
 
 	repo.EXPECT().GetCategories(int64(123)).Return(nil)
-	sender.EXPECT().SendMessage("Создана категория new category. Ее номер 1", int64(123))
+	sender.EXPECT().SendMessage("Нет категорий", int64(123))
 
 	err := model.IncomingMessage(Message{
 		Text:   "/allcat",
@@ -177,7 +177,7 @@ func Test_OnNewExpenseCommand_WrongAmount(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func Test_OnNewExpenseCommand_onOk(t *testing.T) {
+func Test_OnNewExpenseCommand_incorrectDate(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	sender := mocks.NewMockMessageSender(ctrl)
@@ -188,11 +188,65 @@ func Test_OnNewExpenseCommand_onOk(t *testing.T) {
 		{Number: 1, Name: "new category"},
 	}
 	repo.EXPECT().GetCategories(int64(123)).Return(categories)
-	repo.EXPECT().NewExpense(int64(123), 1, 76.10, int64(1644451200))
+	sender.EXPECT().SendMessage("Некорректная дата", int64(123))
+
+	err := model.IncomingMessage(Message{
+		Text:   "/newexpense 1 76.10 29-02-2022",
+		UserID: 123,
+	})
+
+	assert.NoError(t, err)
+}
+
+func Test_OnNewExpenseCommand_onOk(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	sender := mocks.NewMockMessageSender(ctrl)
+	repo := mocks.NewMockRepository(ctrl)
+	model := New(sender, repo)
+
+	category := entity.Category{Number: 1, Name: "new category"}
+	categories := []*entity.Category{&category}
+	repo.EXPECT().GetCategories(int64(123)).Return(categories)
+	repo.EXPECT().NewExpense(int64(123), category, 76.10, int64(1644451200))
 	sender.EXPECT().SendMessage("Расход добавлен", int64(123))
 
 	err := model.IncomingMessage(Message{
 		Text:   "/newexpense 1 76.10 02-10-2022",
+		UserID: 123,
+	})
+
+	assert.NoError(t, err)
+}
+
+func Test_OnReportCommand_withoutPeriod(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	sender := mocks.NewMockMessageSender(ctrl)
+	repo := mocks.NewMockRepository(ctrl)
+	model := New(sender, repo)
+
+	sender.EXPECT().SendMessage("Необходимо указать период", int64(123))
+
+	err := model.IncomingMessage(Message{
+		Text:   "/report",
+		UserID: 123,
+	})
+
+	assert.NoError(t, err)
+}
+
+func Test_OnReportCommand_wrongPeriod(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	sender := mocks.NewMockMessageSender(ctrl)
+	repo := mocks.NewMockRepository(ctrl)
+	model := New(sender, repo)
+
+	sender.EXPECT().SendMessage("Некорректный период", int64(123))
+
+	err := model.IncomingMessage(Message{
+		Text:   "/report a",
 		UserID: 123,
 	})
 

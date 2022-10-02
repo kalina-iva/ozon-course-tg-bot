@@ -16,7 +16,8 @@ type MessageSender interface {
 type Repository interface {
 	NewCategory(userId int64, name string) *entity.Category
 	GetCategories(userId int64) []*entity.Category
-	NewExpense(userId int64, categoryNumber int, amount float64, date int64)
+	NewExpense(userId int64, category entity.Category, amount float64, date int64)
+	NewReport(userId int64, period int64) []*entity.Report
 }
 
 type Model struct {
@@ -52,6 +53,8 @@ func (s *Model) IncomingMessage(msg Message) error {
 		text = s.allCatHandler(msg.UserID)
 	case "/newexpense":
 		text = s.newExpenseHandler(msg.UserID, params)
+	case "/report":
+		text = s.reportHandler(msg.UserID, params)
 	default:
 		text = "Неизвестная команда"
 	}
@@ -90,7 +93,7 @@ func (s *Model) newExpenseHandler(userId int64, params []string) string {
 	if len(params) < 3 {
 		return "Необходимо указать категорию и сумму"
 	}
-	catNumber, err := s.checkCategory(userId, params[1])
+	category, err := s.checkCategory(userId, params[1])
 	if err != nil {
 		if errors.Is(err, InvalidCategoryNumber) {
 			return "Некорректный номер категории"
@@ -114,23 +117,23 @@ func (s *Model) newExpenseHandler(userId int64, params []string) string {
 		date = time.Now().Unix()
 	}
 
-	s.repo.NewExpense(userId, catNumber, amount, date)
+	s.repo.NewExpense(userId, *category, amount, date)
 
 	return "Расход добавлен"
 }
 
-func (s *Model) checkCategory(userId int64, categoryNumber string) (int, error) {
+func (s *Model) checkCategory(userId int64, categoryNumber string) (*entity.Category, error) {
 	number, err := strconv.Atoi(categoryNumber)
 	if err != nil {
-		return 0, InvalidCategoryNumber
+		return nil, InvalidCategoryNumber
 	}
 	categories := s.repo.GetCategories(userId)
 	for _, cat := range categories {
 		if cat.Number == number {
-			return cat.Number, nil
+			return cat, nil
 		}
 	}
-	return 0, CategoryNotFound
+	return nil, CategoryNotFound
 }
 
 func (s *Model) checkAmount(amountStr string) (float64, error) {
@@ -142,4 +145,31 @@ func (s *Model) checkAmount(amountStr string) (float64, error) {
 		return 0, errors.New("amount cannot be negative or 0")
 	}
 	return amount, nil
+}
+
+func (s *Model) reportHandler(userId int64, params []string) string {
+	if len(params) < 2 {
+		return "Необходимо указать период"
+	}
+	var period int64
+	now := time.Now()
+	switch params[1] {
+	case "y":
+		period = now.AddDate(-1, 0, 0).Unix()
+	case "m":
+		period = now.AddDate(0, -1, 0).Unix()
+	case "w":
+		period = now.AddDate(0, 0, -7).Unix()
+	default:
+		return "Некорректный период"
+	}
+
+	report := s.repo.NewReport(userId, period)
+	var sb strings.Builder
+	for _, item := range report {
+		sb.WriteString(item.Category.Name)
+		sb.WriteString(": ")
+		sb.WriteString(fmt.Sprintf("%.2f\n", item.Amount))
+	}
+	return sb.String()
 }

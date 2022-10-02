@@ -6,7 +6,12 @@ type Category struct {
 }
 
 type Expense struct {
-	CategoryNumber int
-	Amount         float64
-	Date           int64
+	Category Category
+	Amount   float64
+	Date     int64
+}
+
+type Report struct {
+	Category Category
+	Amount   float64
 }
