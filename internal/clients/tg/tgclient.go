@@ -8,7 +8,7 @@ import (
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages"
 )
 
-type TokenGetter interface {
+type tokenGetter interface {
 	Token() string
 }
 
@@ -16,7 +16,7 @@ type Client struct {
 	client *tgbotapi.BotAPI
 }
 
-func New(tokenGetter TokenGetter) (*Client, error) {
+func New(tokenGetter tokenGetter) (*Client, error) {
 	client, err := tgbotapi.NewBotAPI(tokenGetter.Token())
 	if err != nil {
 		return nil, errors.Wrap(err, "NewBotAPI")
@@ -30,7 +30,7 @@ func New(tokenGetter TokenGetter) (*Client, error) {
 func (c *Client) SendMessage(text string, userID int64) error {
 	_, err := c.client.Send(tgbotapi.NewMessage(userID, text))
 	if err != nil {
-		return errors.Wrap(err, "client.Send")
+		return errors.Wrap(err, "cannot client.Send")
 	}
 	return nil
 }
@@ -44,7 +44,7 @@ func (c *Client) ListenUpdates(msgModel *messages.Model) {
 	log.Println("listening for messages")
 
 	for update := range updates {
-		if update.Message != nil { // If we got a message
+		if update.Message != nil {
 			log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
 
 			err := msgModel.IncomingMessage(messages.Message{

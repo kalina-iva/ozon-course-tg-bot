@@ -9,23 +9,23 @@ import (
 	"time"
 )
 
-type MessageSender interface {
+type messageSender interface {
 	SendMessage(text string, userID int64) error
 }
 
-type Repository interface {
-	NewCategory(userId int64, name string) *entity.Category
-	GetCategories(userId int64) []*entity.Category
-	NewExpense(userId int64, category entity.Category, amount float64, date int64)
-	NewReport(userId int64, period int64) []*entity.Report
+type repository interface {
+	NewCategory(userID int64, name string) *entity.Category
+	GetCategories(userID int64) []*entity.Category
+	NewExpense(userID int64, category entity.Category, amount float64, date int64)
+	NewReport(userID int64, period int64) []*entity.Report
 }
 
 type Model struct {
-	tgClient MessageSender
-	repo     Repository
+	tgClient messageSender
+	repo     repository
 }
 
-func New(tgClient MessageSender, repo Repository) *Model {
+func New(tgClient messageSender, repo repository) *Model {
 	return &Model{
 		tgClient: tgClient,
 		repo:     repo,
@@ -37,25 +37,15 @@ type Message struct {
 	UserID int64
 }
 
-var CategoryNotFound = errors.New("category not found")
-var InvalidCategoryNumber = errors.New("invalid category number")
-var Manual = `Привет! Это дневник расходов.
-Описание команд:
-/newcat {name} - добавление новой категории
-/allcat - просмотр всех категории
-/newexpense {categoryNumber} {amount} {date} - добавление нового расхода. Если дата не указана, используется текущая
-/report {y|m|w} - получение отчета за последний год/месяц/неделю
-`
-
 func (s *Model) IncomingMessage(msg Message) error {
 	var text string
 
 	var params = strings.Split(msg.Text, " ")
 	switch params[0] {
 	case "/start":
-		text = Manual
+		text = manual
 	case "/help":
-		text = Manual
+		text = manual
 	case "/newcat":
 		text = s.newCatHandler(msg.UserID, params)
 	case "/allcat":
@@ -65,7 +55,7 @@ func (s *Model) IncomingMessage(msg Message) error {
 	case "/report":
 		text = s.reportHandler(msg.UserID, params)
 	default:
-		text = "Неизвестная команда"
+		text = unknownCommand
 	}
 	return s.tgClient.SendMessage(text, msg.UserID)
 }
@@ -83,7 +73,7 @@ func (s *Model) allCatHandler(userID int64) string {
 	categories := s.repo.GetCategories(userID)
 	var text string
 	if len(categories) == 0 {
-		text = "Нет категорий"
+		text = noCategories
 	} else {
 		var sb strings.Builder
 		for _, cat := range categories {
@@ -98,51 +88,51 @@ func (s *Model) allCatHandler(userID int64) string {
 	return text
 }
 
-func (s *Model) newExpenseHandler(userId int64, params []string) string {
+func (s *Model) newExpenseHandler(userID int64, params []string) string {
 	if len(params) < 3 {
-		return "Необходимо указать категорию и сумму"
+		return needCategoryAndAmount
 	}
-	category, err := s.checkCategory(userId, params[1])
+	category, err := s.checkCategory(userID, params[1])
 	if err != nil {
-		if errors.Is(err, InvalidCategoryNumber) {
-			return "Некорректный номер категории"
+		if errors.Is(err, invalidCategoryNumberErr) {
+			return invalidCategoryNumber
 		}
-		if errors.Is(err, CategoryNotFound) {
+		if errors.Is(err, categoryNotFoundErr) {
 			return "Не найдена категория с номером " + params[1]
 		}
 	}
 	amount, err := s.checkAmount(params[2])
 	if err != nil {
-		return "Некорректная сумма расхода"
+		return invalidAmount
 	}
 	var date int64
 	if len(params) == 4 {
 		t, err := time.Parse("01-02-2006", params[3])
 		if err != nil {
-			return "Некорректная дата"
+			return invalidDate
 		}
 		date = t.Unix()
 	} else {
 		date = time.Now().Unix()
 	}
 
-	s.repo.NewExpense(userId, *category, amount, date)
+	s.repo.NewExpense(userID, *category, amount, date)
 
-	return "Расход добавлен"
+	return expenseAdded
 }
 
-func (s *Model) checkCategory(userId int64, categoryNumber string) (*entity.Category, error) {
+func (s *Model) checkCategory(userID int64, categoryNumber string) (*entity.Category, error) {
 	number, err := strconv.Atoi(categoryNumber)
 	if err != nil {
-		return nil, InvalidCategoryNumber
+		return nil, invalidCategoryNumberErr
 	}
-	categories := s.repo.GetCategories(userId)
+	categories := s.repo.GetCategories(userID)
 	for _, cat := range categories {
 		if cat.Number == number {
 			return cat, nil
 		}
 	}
-	return nil, CategoryNotFound
+	return nil, categoryNotFoundErr
 }
 
 func (s *Model) checkAmount(amountStr string) (float64, error) {
@@ -156,9 +146,9 @@ func (s *Model) checkAmount(amountStr string) (float64, error) {
 	return amount, nil
 }
 
-func (s *Model) reportHandler(userId int64, params []string) string {
+func (s *Model) reportHandler(userID int64, params []string) string {
 	if len(params) < 2 {
-		return "Необходимо указать период"
+		return needPeriod
 	}
 	var period int64
 	now := time.Now()
@@ -170,10 +160,10 @@ func (s *Model) reportHandler(userId int64, params []string) string {
 	case "w":
 		period = now.AddDate(0, 0, -7).Unix()
 	default:
-		return "Некорректный период"
+		return invalidPeriod
 	}
 
-	report := s.repo.NewReport(userId, period)
+	report := s.repo.NewReport(userID, period)
 	var sb strings.Builder
 	for _, item := range report {
 		sb.WriteString(item.Category.Name)

@@ -16,8 +16,8 @@ func New() *Expense {
 	}
 }
 
-func (m *Expense) NewCategory(userId int64, name string) *entity.Category {
-	categories := m.categories[userId]
+func (m *Expense) NewCategory(userID int64, name string) *entity.Category {
+	categories := m.categories[userID]
 
 	cat := m.getCategoryByName(categories, name)
 	if cat == nil {
@@ -26,7 +26,7 @@ func (m *Expense) NewCategory(userId int64, name string) *entity.Category {
 			Name:   name,
 		}
 
-		m.categories[userId] = append(categories, cat)
+		m.categories[userID] = append(categories, cat)
 	}
 	return cat
 }
@@ -41,8 +41,8 @@ func calcNumber(categories []*entity.Category) int {
 	return number + 1
 }
 
-func (m *Expense) GetCategories(userId int64) []*entity.Category {
-	categories := m.categories[userId]
+func (m *Expense) GetCategories(userID int64) []*entity.Category {
+	categories := m.categories[userID]
 	return categories
 }
 
@@ -55,17 +55,17 @@ func (m *Expense) getCategoryByName(categories []*entity.Category, name string) 
 	return nil
 }
 
-func (m *Expense) NewExpense(userId int64, category entity.Category, amount float64, date int64) {
-	m.expenses[userId] = append(m.expenses[userId], &entity.Expense{
+func (m *Expense) NewExpense(userID int64, category entity.Category, amount float64, date int64) {
+	m.expenses[userID] = append(m.expenses[userID], &entity.Expense{
 		Category: category,
 		Amount:   amount,
 		Date:     date,
 	})
 }
 
-func (m *Expense) NewReport(userId int64, period int64) []*entity.Report {
+func (m *Expense) NewReport(userID int64, period int64) []*entity.Report {
 	reportMap := make(map[entity.Category]float64)
-	expenses := m.expenses[userId]
+	expenses := m.expenses[userID]
 	for _, expense := range expenses {
 		if expense.Date >= period {
 			reportMap[expense.Category] += expense.Amount
