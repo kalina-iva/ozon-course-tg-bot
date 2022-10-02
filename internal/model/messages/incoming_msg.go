@@ -39,6 +39,13 @@ type Message struct {
 
 var CategoryNotFound = errors.New("category not found")
 var InvalidCategoryNumber = errors.New("invalid category number")
+var Manual = `Привет! Это дневник расходов.
+Описание команд:
+/newcat {name} - добавление новой категории
+/allcat - просмотр всех категории
+/newexpense {categoryNumber} {amount} {date} - добавление нового расхода. Если дата не указана, используется текущая
+/report {y|m|w} - получение отчета за последний год/месяц/неделю
+`
 
 func (s *Model) IncomingMessage(msg Message) error {
 	var text string
@@ -46,7 +53,9 @@ func (s *Model) IncomingMessage(msg Message) error {
 	var params = strings.Split(msg.Text, " ")
 	switch params[0] {
 	case "/start":
-		text = "hello"
+		text = Manual
+	case "/help":
+		text = Manual
 	case "/newcat":
 		text = s.newCatHandler(msg.UserID, params)
 	case "/allcat":

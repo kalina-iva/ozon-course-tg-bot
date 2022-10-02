@@ -16,7 +16,13 @@ func Test_OnStartCommand_ShouldAnswerWithIntroMessage(t *testing.T) {
 	repo := mocks.NewMockRepository(ctrl)
 	model := New(sender, repo)
 
-	sender.EXPECT().SendMessage("hello", int64(123))
+	sender.EXPECT().SendMessage(`Привет! Это дневник расходов.
+Описание команд:
+/newcat {name} - добавление новой категории
+/allcat - просмотр всех категории
+/newexpense {categoryNumber} {amount} {date} - добавление нового расхода. Если дата не указана, используется текущая
+/report {y|m|w} - получение отчета за последний год/месяц/неделю
+`, int64(123))
 
 	err := model.IncomingMessage(Message{
 		Text:   "/start",
