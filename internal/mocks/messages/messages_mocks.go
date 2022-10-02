@@ -86,15 +86,27 @@ func (mr *MockRepositoryMockRecorder) GetCategories(userId interface{}) *gomock.
 }
 
 // NewCategory mocks base method.
-func (m *MockRepository) NewCategory(userID int64, name string) *entity.Category {
+func (m *MockRepository) NewCategory(userId int64, name string) *entity.Category {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewCategory", userID, name)
+	ret := m.ctrl.Call(m, "NewCategory", userId, name)
 	ret0, _ := ret[0].(*entity.Category)
 	return ret0
 }
 
 // NewCategory indicates an expected call of NewCategory.
-func (mr *MockRepositoryMockRecorder) NewCategory(userID, name interface{}) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) NewCategory(userId, name interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewCategory", reflect.TypeOf((*MockRepository)(nil).NewCategory), userID, name)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewCategory", reflect.TypeOf((*MockRepository)(nil).NewCategory), userId, name)
+}
+
+// NewExpense mocks base method.
+func (m *MockRepository) NewExpense(userId int64, categoryNumber int, amount float64, date int64) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "NewExpense", userId, categoryNumber, amount, date)
+}
+
+// NewExpense indicates an expected call of NewExpense.
+func (mr *MockRepositoryMockRecorder) NewExpense(userId, categoryNumber, amount, date interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewExpense", reflect.TypeOf((*MockRepository)(nil).NewExpense), userId, categoryNumber, amount, date)
 }

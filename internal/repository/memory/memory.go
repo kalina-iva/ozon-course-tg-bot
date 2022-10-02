@@ -6,11 +6,13 @@ import (
 
 type Expense struct {
 	categories map[int64][]*entity.Category
+	expenses   map[int64][]*entity.Expense
 }
 
 func New() *Expense {
 	return &Expense{
 		categories: make(map[int64][]*entity.Category),
+		expenses:   make(map[int64][]*entity.Expense),
 	}
 }
 
@@ -51,4 +53,12 @@ func (m *Expense) getCategoryByName(categories []*entity.Category, name string) 
 		}
 	}
 	return nil
+}
+
+func (m *Expense) NewExpense(userId int64, categoryNumber int, amount float64, date int64) {
+	m.expenses[userId] = append(m.expenses[userId], &entity.Expense{
+		CategoryNumber: categoryNumber,
+		Amount:         amount,
+		Date:           date,
+	})
 }
