@@ -1,6 +1,7 @@
 package main
 
 import (
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/repository/memory"
 	"log"
 
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/clients/tg"
@@ -19,7 +20,8 @@ func main() {
 		log.Fatal("tg client init failed:", err)
 	}
 
-	msgModel := messages.New(tgClient)
+	repo := memory.New()
+	msgModel := messages.New(tgClient, repo)
 
 	tgClient.ListenUpdates(msgModel)
 }

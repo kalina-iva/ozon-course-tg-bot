@@ -8,6 +8,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	entity "gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages/entity"
 )
 
 // MockMessageSender is a mock of MessageSender interface.
@@ -45,4 +46,55 @@ func (m *MockMessageSender) SendMessage(text string, userID int64) error {
 func (mr *MockMessageSenderMockRecorder) SendMessage(text, userID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessage", reflect.TypeOf((*MockMessageSender)(nil).SendMessage), text, userID)
+}
+
+// MockRepository is a mock of Repository interface.
+type MockRepository struct {
+	ctrl     *gomock.Controller
+	recorder *MockRepositoryMockRecorder
+}
+
+// MockRepositoryMockRecorder is the mock recorder for MockRepository.
+type MockRepositoryMockRecorder struct {
+	mock *MockRepository
+}
+
+// NewMockRepository creates a new mock instance.
+func NewMockRepository(ctrl *gomock.Controller) *MockRepository {
+	mock := &MockRepository{ctrl: ctrl}
+	mock.recorder = &MockRepositoryMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockRepository) EXPECT() *MockRepositoryMockRecorder {
+	return m.recorder
+}
+
+// GetCategories mocks base method.
+func (m *MockRepository) GetCategories(userId int64) []*entity.Category {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCategories", userId)
+	ret0, _ := ret[0].([]*entity.Category)
+	return ret0
+}
+
+// GetCategories indicates an expected call of GetCategories.
+func (mr *MockRepositoryMockRecorder) GetCategories(userId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCategories", reflect.TypeOf((*MockRepository)(nil).GetCategories), userId)
+}
+
+// NewCategory mocks base method.
+func (m *MockRepository) NewCategory(userID int64, name string) *entity.Category {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NewCategory", userID, name)
+	ret0, _ := ret[0].(*entity.Category)
+	return ret0
+}
+
+// NewCategory indicates an expected call of NewCategory.
+func (mr *MockRepositoryMockRecorder) NewCategory(userID, name interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewCategory", reflect.TypeOf((*MockRepository)(nil).NewCategory), userID, name)
 }
