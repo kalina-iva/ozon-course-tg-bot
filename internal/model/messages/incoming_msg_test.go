@@ -1,12 +1,12 @@
 package messages
 
 import (
-	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages/entity"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	mocks "gitlab.ozon.dev/mary.kalina/telegram-bot/internal/mocks/messages"
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages/entity"
 )
 
 func Test_OnStartCommand_ShouldAnswerWithIntroMessage(t *testing.T) {

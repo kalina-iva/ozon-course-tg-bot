@@ -8,12 +8,14 @@ const manual = `Привет! Это дневник расходов.
 /report {y|m|w} - получение отчета за последний год/месяц/неделю
 `
 
-const unknownCommand = "Неизвестная команда"
-const noCategories = "Нет категорий"
-const expenseAdded = "Расход добавлен"
-const needCategoryAndAmount = "Необходимо указать категорию и сумму"
-const invalidCategoryNumber = "Некорректный номер категории"
-const invalidAmount = "Некорректная сумма расхода"
-const invalidDate = "Некорректная дата"
-const needPeriod = "Необходимо указать период"
-const invalidPeriod = "Некорректный период"
+const (
+	unknownCommand        = "Неизвестная команда"
+	noCategories          = "Нет категорий"
+	expenseAdded          = "Расход добавлен"
+	needCategoryAndAmount = "Необходимо указать категорию и сумму"
+	invalidCategoryNumber = "Некорректный номер категории"
+	invalidAmount         = "Некорректная сумма расхода"
+	invalidDate           = "Некорректная дата"
+	needPeriod            = "Необходимо указать период"
+	invalidPeriod         = "Некорректный период"
+)

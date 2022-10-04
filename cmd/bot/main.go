@@ -1,12 +1,12 @@
 package main
 
 import (
-	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/repository/memory"
 	"log"
 
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/clients/tg"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/config"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages"
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/repository/memory"
 )
 
 func main() {

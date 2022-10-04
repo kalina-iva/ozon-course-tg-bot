@@ -71,7 +71,7 @@ func (m *Expense) NewReport(userID int64, period int64) []*entity.Report {
 			reportMap[expense.Category] += expense.Amount
 		}
 	}
-	var report []*entity.Report
+	report := make([]*entity.Report, 0, len(reportMap))
 	for category, amount := range reportMap {
 		report = append(report, &entity.Report{
 			Category: category,

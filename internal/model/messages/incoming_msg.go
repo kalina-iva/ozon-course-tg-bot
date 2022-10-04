@@ -2,11 +2,12 @@ package messages
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
-	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages/entity"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages/entity"
 )
 
 type messageSender interface {
@@ -40,7 +41,7 @@ type Message struct {
 func (s *Model) IncomingMessage(msg Message) error {
 	var text string
 
-	var params = strings.Split(msg.Text, " ")
+	params := strings.Split(msg.Text, " ")
 	switch params[0] {
 	case "/start":
 		text = manual
@@ -89,15 +90,16 @@ func (s *Model) allCatHandler(userID int64) string {
 }
 
 func (s *Model) newExpenseHandler(userID int64, params []string) string {
-	if len(params) < 3 {
+	const cntRequiredParams = 3
+	if len(params) < cntRequiredParams {
 		return needCategoryAndAmount
 	}
 	category, err := s.checkCategory(userID, params[1])
 	if err != nil {
-		if errors.Is(err, invalidCategoryNumberErr) {
+		if errors.Is(err, errInvalidCategoryNumber) {
 			return invalidCategoryNumber
 		}
-		if errors.Is(err, categoryNotFoundErr) {
+		if errors.Is(err, errCategoryNotFound) {
 			return "Не найдена категория с номером " + params[1]
 		}
 	}
@@ -105,8 +107,9 @@ func (s *Model) newExpenseHandler(userID int64, params []string) string {
 	if err != nil {
 		return invalidAmount
 	}
+
 	var date int64
-	if len(params) == 4 {
+	if len(params) == cntRequiredParams+1 {
 		t, err := time.Parse("01-02-2006", params[3])
 		if err != nil {
 			return invalidDate
@@ -124,7 +127,7 @@ func (s *Model) newExpenseHandler(userID int64, params []string) string {
 func (s *Model) checkCategory(userID int64, categoryNumber string) (*entity.Category, error) {
 	number, err := strconv.Atoi(categoryNumber)
 	if err != nil {
-		return nil, invalidCategoryNumberErr
+		return nil, errInvalidCategoryNumber
 	}
 	categories := s.repo.GetCategories(userID)
 	for _, cat := range categories {
@@ -132,11 +135,12 @@ func (s *Model) checkCategory(userID int64, categoryNumber string) (*entity.Cate
 			return cat, nil
 		}
 	}
-	return nil, categoryNotFoundErr
+	return nil, errCategoryNotFound
 }
 
 func (s *Model) checkAmount(amountStr string) (float64, error) {
-	amount, err := strconv.ParseFloat(amountStr, 64)
+	const bitSize = 64
+	amount, err := strconv.ParseFloat(amountStr, bitSize)
 	if err != nil {
 		return 0, err
 	}
@@ -147,7 +151,8 @@ func (s *Model) checkAmount(amountStr string) (float64, error) {
 }
 
 func (s *Model) reportHandler(userID int64, params []string) string {
-	if len(params) < 2 {
+	const cntRequiredParams = 2
+	if len(params) < cntRequiredParams {
 		return needPeriod
 	}
 	var period int64
