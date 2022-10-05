@@ -18,4 +18,7 @@ const (
 	invalidDate           = "Некорректная дата"
 	needPeriod            = "Необходимо указать период"
 	invalidPeriod         = "Некорректный период"
+	categoryNotFound      = "Не найдена категория с номером %s"
+	categoryCreated       = "Создана категория %s. Ее номер %v"
+	noCategoryName        = "Нет названия категории"
 )

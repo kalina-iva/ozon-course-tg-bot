@@ -63,11 +63,11 @@ func (s *Model) IncomingMessage(msg Message) error {
 
 func (s *Model) newCatHandler(userID int64, params []string) string {
 	if len(params) == 1 {
-		return "Нет названия категории"
+		return noCategoryName
 	}
 	catName := strings.Join(params[1:], " ")
 	newCat := s.repo.NewCategory(userID, catName)
-	return fmt.Sprintf("Создана категория %s. Ее номер %v", newCat.Name, newCat.Number)
+	return fmt.Sprintf(categoryCreated, newCat.Name, newCat.Number)
 }
 
 func (s *Model) allCatHandler(userID int64) string {
@@ -100,7 +100,7 @@ func (s *Model) newExpenseHandler(userID int64, params []string) string {
 			return invalidCategoryNumber
 		}
 		if errors.Is(err, errCategoryNotFound) {
-			return "Не найдена категория с номером " + params[1]
+			return fmt.Sprintf(categoryNotFound, params[1])
 		}
 	}
 	amount, err := s.checkAmount(params[2])
