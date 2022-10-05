@@ -12,8 +12,8 @@ import (
 func Test_OnStartCommand_ShouldAnswerWithIntroMessage(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	sender := mocks.NewMockMessageSender(ctrl)
-	repo := mocks.NewMockRepository(ctrl)
+	sender := mocks.NewMockmessageSender(ctrl)
+	repo := mocks.NewMockrepository(ctrl)
 	model := New(sender, repo)
 
 	sender.EXPECT().SendMessage(`Привет! Это дневник расходов.
@@ -35,8 +35,8 @@ func Test_OnStartCommand_ShouldAnswerWithIntroMessage(t *testing.T) {
 func Test_OnUnknownCommand_ShouldAnswerWithHelpMessage(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	sender := mocks.NewMockMessageSender(ctrl)
-	repo := mocks.NewMockRepository(ctrl)
+	sender := mocks.NewMockmessageSender(ctrl)
+	repo := mocks.NewMockrepository(ctrl)
 	model := New(sender, repo)
 
 	sender.EXPECT().SendMessage("Неизвестная команда", int64(123))
@@ -52,8 +52,8 @@ func Test_OnUnknownCommand_ShouldAnswerWithHelpMessage(t *testing.T) {
 func Test_OnNewCatCommand_ShouldAnswerWithError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	sender := mocks.NewMockMessageSender(ctrl)
-	repo := mocks.NewMockRepository(ctrl)
+	sender := mocks.NewMockmessageSender(ctrl)
+	repo := mocks.NewMockrepository(ctrl)
 	model := New(sender, repo)
 
 	sender.EXPECT().SendMessage("Нет названия категории", int64(123))
@@ -69,8 +69,8 @@ func Test_OnNewCatCommand_ShouldAnswerWithError(t *testing.T) {
 func Test_OnNewCatCommand_NameOfSeveralWords(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	sender := mocks.NewMockMessageSender(ctrl)
-	repo := mocks.NewMockRepository(ctrl)
+	sender := mocks.NewMockmessageSender(ctrl)
+	repo := mocks.NewMockrepository(ctrl)
 	model := New(sender, repo)
 
 	repo.EXPECT().NewCategory(int64(123), "new category").Return(&entity.Category{
@@ -90,8 +90,8 @@ func Test_OnNewCatCommand_NameOfSeveralWords(t *testing.T) {
 func Test_OnAllCatCommand_NoCategories(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	sender := mocks.NewMockMessageSender(ctrl)
-	repo := mocks.NewMockRepository(ctrl)
+	sender := mocks.NewMockmessageSender(ctrl)
+	repo := mocks.NewMockrepository(ctrl)
 	model := New(sender, repo)
 
 	repo.EXPECT().GetCategories(int64(123)).Return(nil)
@@ -108,8 +108,8 @@ func Test_OnAllCatCommand_NoCategories(t *testing.T) {
 func Test_OnAllCatCommand_TwoCategories(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	sender := mocks.NewMockMessageSender(ctrl)
-	repo := mocks.NewMockRepository(ctrl)
+	sender := mocks.NewMockmessageSender(ctrl)
+	repo := mocks.NewMockrepository(ctrl)
 	model := New(sender, repo)
 
 	categories := []*entity.Category{
@@ -130,8 +130,8 @@ func Test_OnAllCatCommand_TwoCategories(t *testing.T) {
 func Test_OnNewExpenseCommand_CategoryNotFound(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	sender := mocks.NewMockMessageSender(ctrl)
-	repo := mocks.NewMockRepository(ctrl)
+	sender := mocks.NewMockmessageSender(ctrl)
+	repo := mocks.NewMockrepository(ctrl)
 	model := New(sender, repo)
 
 	repo.EXPECT().GetCategories(int64(123)).Return(nil)
@@ -148,8 +148,8 @@ func Test_OnNewExpenseCommand_CategoryNotFound(t *testing.T) {
 func Test_OnNewExpenseCommand_WrongCategory(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	sender := mocks.NewMockMessageSender(ctrl)
-	repo := mocks.NewMockRepository(ctrl)
+	sender := mocks.NewMockmessageSender(ctrl)
+	repo := mocks.NewMockrepository(ctrl)
 	model := New(sender, repo)
 
 	sender.EXPECT().SendMessage("Некорректный номер категории", int64(123))
@@ -165,8 +165,8 @@ func Test_OnNewExpenseCommand_WrongCategory(t *testing.T) {
 func Test_OnNewExpenseCommand_WrongAmount(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	sender := mocks.NewMockMessageSender(ctrl)
-	repo := mocks.NewMockRepository(ctrl)
+	sender := mocks.NewMockmessageSender(ctrl)
+	repo := mocks.NewMockrepository(ctrl)
 	model := New(sender, repo)
 
 	categories := []*entity.Category{
@@ -186,8 +186,8 @@ func Test_OnNewExpenseCommand_WrongAmount(t *testing.T) {
 func Test_OnNewExpenseCommand_incorrectDate(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	sender := mocks.NewMockMessageSender(ctrl)
-	repo := mocks.NewMockRepository(ctrl)
+	sender := mocks.NewMockmessageSender(ctrl)
+	repo := mocks.NewMockrepository(ctrl)
 	model := New(sender, repo)
 
 	categories := []*entity.Category{
@@ -207,14 +207,14 @@ func Test_OnNewExpenseCommand_incorrectDate(t *testing.T) {
 func Test_OnNewExpenseCommand_onOk(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	sender := mocks.NewMockMessageSender(ctrl)
-	repo := mocks.NewMockRepository(ctrl)
+	sender := mocks.NewMockmessageSender(ctrl)
+	repo := mocks.NewMockrepository(ctrl)
 	model := New(sender, repo)
 
 	category := entity.Category{Number: 1, Name: "new category"}
 	categories := []*entity.Category{&category}
 	repo.EXPECT().GetCategories(int64(123)).Return(categories)
-	repo.EXPECT().NewExpense(int64(123), category, 76.10, int64(1644451200))
+	repo.EXPECT().NewExpense(int64(123), category, int64(7610), int64(1644451200))
 	sender.EXPECT().SendMessage("Расход добавлен", int64(123))
 
 	err := model.IncomingMessage(Message{
@@ -228,8 +228,8 @@ func Test_OnNewExpenseCommand_onOk(t *testing.T) {
 func Test_OnReportCommand_withoutPeriod(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	sender := mocks.NewMockMessageSender(ctrl)
-	repo := mocks.NewMockRepository(ctrl)
+	sender := mocks.NewMockmessageSender(ctrl)
+	repo := mocks.NewMockrepository(ctrl)
 	model := New(sender, repo)
 
 	sender.EXPECT().SendMessage("Необходимо указать период", int64(123))
@@ -245,8 +245,8 @@ func Test_OnReportCommand_withoutPeriod(t *testing.T) {
 func Test_OnReportCommand_wrongPeriod(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	sender := mocks.NewMockMessageSender(ctrl)
-	repo := mocks.NewMockRepository(ctrl)
+	sender := mocks.NewMockmessageSender(ctrl)
+	repo := mocks.NewMockrepository(ctrl)
 	model := New(sender, repo)
 
 	sender.EXPECT().SendMessage("Некорректный период", int64(123))

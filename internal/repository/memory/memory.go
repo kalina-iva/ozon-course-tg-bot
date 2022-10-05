@@ -55,7 +55,7 @@ func (m *Expense) getCategoryByName(categories []*entity.Category, name string) 
 	return nil
 }
 
-func (m *Expense) NewExpense(userID int64, category entity.Category, amount float64, date int64) {
+func (m *Expense) NewExpense(userID int64, category entity.Category, amount int64, date int64) {
 	m.expenses[userID] = append(m.expenses[userID], &entity.Expense{
 		Category: category,
 		Amount:   amount,
@@ -64,7 +64,7 @@ func (m *Expense) NewExpense(userID int64, category entity.Category, amount floa
 }
 
 func (m *Expense) NewReport(userID int64, period int64) []*entity.Report {
-	reportMap := make(map[entity.Category]float64)
+	reportMap := make(map[entity.Category]int64)
 	expenses := m.expenses[userID]
 	for _, expense := range expenses {
 		if expense.Date >= period {

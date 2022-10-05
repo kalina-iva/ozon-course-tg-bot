@@ -2,6 +2,7 @@ package messages
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -10,6 +11,8 @@ import (
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages/entity"
 )
 
+const cntKopInRub = 100
+
 type messageSender interface {
 	SendMessage(text string, userID int64) error
 }
@@ -17,7 +20,7 @@ type messageSender interface {
 type repository interface {
 	NewCategory(userID int64, name string) *entity.Category
 	GetCategories(userID int64) []*entity.Category
-	NewExpense(userID int64, category entity.Category, amount float64, date int64)
+	NewExpense(userID int64, category entity.Category, amount int64, date int64)
 	NewReport(userID int64, period int64) []*entity.Report
 }
 
@@ -138,7 +141,7 @@ func (s *Model) checkCategory(userID int64, categoryNumber string) (*entity.Cate
 	return nil, errCategoryNotFound
 }
 
-func (s *Model) checkAmount(amountStr string) (float64, error) {
+func (s *Model) checkAmount(amountStr string) (int64, error) {
 	const bitSize = 64
 	amount, err := strconv.ParseFloat(amountStr, bitSize)
 	if err != nil {
@@ -147,7 +150,7 @@ func (s *Model) checkAmount(amountStr string) (float64, error) {
 	if amount <= 0 {
 		return 0, errors.New("amount cannot be negative or 0")
 	}
-	return amount, nil
+	return int64(math.Round(amount * cntKopInRub)), nil
 }
 
 func (s *Model) reportHandler(userID int64, params []string) string {
@@ -173,7 +176,7 @@ func (s *Model) reportHandler(userID int64, params []string) string {
 	for _, item := range report {
 		sb.WriteString(item.Category.Name)
 		sb.WriteString(": ")
-		sb.WriteString(fmt.Sprintf("%.2f\n", item.Amount))
+		sb.WriteString(fmt.Sprintf("%.2f\n", float64(item.Amount)/cntKopInRub))
 	}
 	return sb.String()
 }

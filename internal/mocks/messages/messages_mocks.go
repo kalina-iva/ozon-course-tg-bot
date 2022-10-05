@@ -11,31 +11,31 @@ import (
 	entity "gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages/entity"
 )
 
-// MockMessageSender is a mock of MessageSender interface.
-type MockMessageSender struct {
+// MockmessageSender is a mock of messageSender interface.
+type MockmessageSender struct {
 	ctrl     *gomock.Controller
-	recorder *MockMessageSenderMockRecorder
+	recorder *MockmessageSenderMockRecorder
 }
 
-// MockMessageSenderMockRecorder is the mock recorder for MockMessageSender.
-type MockMessageSenderMockRecorder struct {
-	mock *MockMessageSender
+// MockmessageSenderMockRecorder is the mock recorder for MockmessageSender.
+type MockmessageSenderMockRecorder struct {
+	mock *MockmessageSender
 }
 
-// NewMockMessageSender creates a new mock instance.
-func NewMockMessageSender(ctrl *gomock.Controller) *MockMessageSender {
-	mock := &MockMessageSender{ctrl: ctrl}
-	mock.recorder = &MockMessageSenderMockRecorder{mock}
+// NewMockmessageSender creates a new mock instance.
+func NewMockmessageSender(ctrl *gomock.Controller) *MockmessageSender {
+	mock := &MockmessageSender{ctrl: ctrl}
+	mock.recorder = &MockmessageSenderMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockMessageSender) EXPECT() *MockMessageSenderMockRecorder {
+func (m *MockmessageSender) EXPECT() *MockmessageSenderMockRecorder {
 	return m.recorder
 }
 
 // SendMessage mocks base method.
-func (m *MockMessageSender) SendMessage(text string, userID int64) error {
+func (m *MockmessageSender) SendMessage(text string, userID int64) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendMessage", text, userID)
 	ret0, _ := ret[0].(error)
@@ -43,84 +43,84 @@ func (m *MockMessageSender) SendMessage(text string, userID int64) error {
 }
 
 // SendMessage indicates an expected call of SendMessage.
-func (mr *MockMessageSenderMockRecorder) SendMessage(text, userID interface{}) *gomock.Call {
+func (mr *MockmessageSenderMockRecorder) SendMessage(text, userID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessage", reflect.TypeOf((*MockMessageSender)(nil).SendMessage), text, userID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessage", reflect.TypeOf((*MockmessageSender)(nil).SendMessage), text, userID)
 }
 
-// MockRepository is a mock of Repository interface.
-type MockRepository struct {
+// Mockrepository is a mock of repository interface.
+type Mockrepository struct {
 	ctrl     *gomock.Controller
-	recorder *MockRepositoryMockRecorder
+	recorder *MockrepositoryMockRecorder
 }
 
-// MockRepositoryMockRecorder is the mock recorder for MockRepository.
-type MockRepositoryMockRecorder struct {
-	mock *MockRepository
+// MockrepositoryMockRecorder is the mock recorder for Mockrepository.
+type MockrepositoryMockRecorder struct {
+	mock *Mockrepository
 }
 
-// NewMockRepository creates a new mock instance.
-func NewMockRepository(ctrl *gomock.Controller) *MockRepository {
-	mock := &MockRepository{ctrl: ctrl}
-	mock.recorder = &MockRepositoryMockRecorder{mock}
+// NewMockrepository creates a new mock instance.
+func NewMockrepository(ctrl *gomock.Controller) *Mockrepository {
+	mock := &Mockrepository{ctrl: ctrl}
+	mock.recorder = &MockrepositoryMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockRepository) EXPECT() *MockRepositoryMockRecorder {
+func (m *Mockrepository) EXPECT() *MockrepositoryMockRecorder {
 	return m.recorder
 }
 
 // GetCategories mocks base method.
-func (m *MockRepository) GetCategories(userId int64) []*entity.Category {
+func (m *Mockrepository) GetCategories(userID int64) []*entity.Category {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCategories", userId)
+	ret := m.ctrl.Call(m, "GetCategories", userID)
 	ret0, _ := ret[0].([]*entity.Category)
 	return ret0
 }
 
 // GetCategories indicates an expected call of GetCategories.
-func (mr *MockRepositoryMockRecorder) GetCategories(userId interface{}) *gomock.Call {
+func (mr *MockrepositoryMockRecorder) GetCategories(userID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCategories", reflect.TypeOf((*MockRepository)(nil).GetCategories), userId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCategories", reflect.TypeOf((*Mockrepository)(nil).GetCategories), userID)
 }
 
 // NewCategory mocks base method.
-func (m *MockRepository) NewCategory(userId int64, name string) *entity.Category {
+func (m *Mockrepository) NewCategory(userID int64, name string) *entity.Category {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewCategory", userId, name)
+	ret := m.ctrl.Call(m, "NewCategory", userID, name)
 	ret0, _ := ret[0].(*entity.Category)
 	return ret0
 }
 
 // NewCategory indicates an expected call of NewCategory.
-func (mr *MockRepositoryMockRecorder) NewCategory(userId, name interface{}) *gomock.Call {
+func (mr *MockrepositoryMockRecorder) NewCategory(userID, name interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewCategory", reflect.TypeOf((*MockRepository)(nil).NewCategory), userId, name)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewCategory", reflect.TypeOf((*Mockrepository)(nil).NewCategory), userID, name)
 }
 
 // NewExpense mocks base method.
-func (m *MockRepository) NewExpense(userId int64, category entity.Category, amount float64, date int64) {
+func (m *Mockrepository) NewExpense(userID int64, category entity.Category, amount, date int64) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "NewExpense", userId, category, amount, date)
+	m.ctrl.Call(m, "NewExpense", userID, category, amount, date)
 }
 
 // NewExpense indicates an expected call of NewExpense.
-func (mr *MockRepositoryMockRecorder) NewExpense(userId, category, amount, date interface{}) *gomock.Call {
+func (mr *MockrepositoryMockRecorder) NewExpense(userID, category, amount, date interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewExpense", reflect.TypeOf((*MockRepository)(nil).NewExpense), userId, category, amount, date)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewExpense", reflect.TypeOf((*Mockrepository)(nil).NewExpense), userID, category, amount, date)
 }
 
 // NewReport mocks base method.
-func (m *MockRepository) NewReport(userId, period int64) []*entity.Report {
+func (m *Mockrepository) NewReport(userID, period int64) []*entity.Report {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewReport", userId, period)
+	ret := m.ctrl.Call(m, "NewReport", userID, period)
 	ret0, _ := ret[0].([]*entity.Report)
 	return ret0
 }
 
 // NewReport indicates an expected call of NewReport.
-func (mr *MockRepositoryMockRecorder) NewReport(userId, period interface{}) *gomock.Call {
+func (mr *MockrepositoryMockRecorder) NewReport(userID, period interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewReport", reflect.TypeOf((*MockRepository)(nil).NewReport), userId, period)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewReport", reflect.TypeOf((*Mockrepository)(nil).NewReport), userID, period)
 }

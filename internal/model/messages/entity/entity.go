@@ -7,11 +7,11 @@ type Category struct {
 
 type Expense struct {
 	Category Category
-	Amount   float64
+	Amount   int64
 	Date     int64
 }
 
 type Report struct {
 	Category Category
-	Amount   float64
+	Amount   int64
 }
