@@ -19,7 +19,7 @@ type Client struct {
 func New(tokenGetter tokenGetter) (*Client, error) {
 	client, err := tgbotapi.NewBotAPI(tokenGetter.Token())
 	if err != nil {
-		return nil, errors.Wrap(err, "NewBotAPI")
+		return nil, errors.Wrap(err, "create NewBotAPI")
 	}
 
 	return &Client{

@@ -2,12 +2,12 @@ package messages
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 	"math"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages/entity"
 )
 
@@ -18,9 +18,7 @@ type messageSender interface {
 }
 
 type repository interface {
-	NewCategory(userID int64, name string) *entity.Category
-	GetCategories(userID int64) []*entity.Category
-	NewExpense(userID int64, category entity.Category, amount int64, date int64)
+	NewExpense(userID int64, category string, amount int64, date int64)
 	NewReport(userID int64, period int64) []*entity.Report
 }
 
@@ -50,10 +48,6 @@ func (s *Model) IncomingMessage(msg Message) error {
 		text = manual
 	case "/help":
 		text = manual
-	case "/newcat":
-		text = s.newCatHandler(msg.UserID, params)
-	case "/allcat":
-		text = s.allCatHandler(msg.UserID)
 	case "/newexpense":
 		text = s.newExpenseHandler(msg.UserID, params)
 	case "/report":
@@ -64,48 +58,12 @@ func (s *Model) IncomingMessage(msg Message) error {
 	return s.tgClient.SendMessage(text, msg.UserID)
 }
 
-func (s *Model) newCatHandler(userID int64, params []string) string {
-	if len(params) == 1 {
-		return noCategoryName
-	}
-	catName := strings.Join(params[1:], " ")
-	newCat := s.repo.NewCategory(userID, catName)
-	return fmt.Sprintf(categoryCreated, newCat.Name, newCat.Number)
-}
-
-func (s *Model) allCatHandler(userID int64) string {
-	categories := s.repo.GetCategories(userID)
-	var text string
-	if len(categories) == 0 {
-		text = noCategories
-	} else {
-		var sb strings.Builder
-		for _, cat := range categories {
-			sb.WriteString(strconv.Itoa(cat.Number))
-			sb.WriteString(". ")
-			sb.WriteString(cat.Name)
-			sb.WriteString("\n")
-		}
-		text = sb.String()
-	}
-
-	return text
-}
-
 func (s *Model) newExpenseHandler(userID int64, params []string) string {
 	const cntRequiredParams = 3
 	if len(params) < cntRequiredParams {
 		return needCategoryAndAmount
 	}
-	category, err := s.checkCategory(userID, params[1])
-	if err != nil {
-		if errors.Is(err, errInvalidCategoryNumber) {
-			return invalidCategoryNumber
-		}
-		if errors.Is(err, errCategoryNotFound) {
-			return fmt.Sprintf(categoryNotFound, params[1])
-		}
-	}
+	category := params[1]
 	amount, err := s.checkAmount(params[2])
 	if err != nil {
 		return invalidAmount
@@ -122,33 +80,19 @@ func (s *Model) newExpenseHandler(userID int64, params []string) string {
 		date = time.Now().Unix()
 	}
 
-	s.repo.NewExpense(userID, *category, amount, date)
+	s.repo.NewExpense(userID, category, amount, date)
 
 	return expenseAdded
-}
-
-func (s *Model) checkCategory(userID int64, categoryNumber string) (*entity.Category, error) {
-	number, err := strconv.Atoi(categoryNumber)
-	if err != nil {
-		return nil, errInvalidCategoryNumber
-	}
-	categories := s.repo.GetCategories(userID)
-	for _, cat := range categories {
-		if cat.Number == number {
-			return cat, nil
-		}
-	}
-	return nil, errCategoryNotFound
 }
 
 func (s *Model) checkAmount(amountStr string) (int64, error) {
 	const bitSize = 64
 	amount, err := strconv.ParseFloat(amountStr, bitSize)
 	if err != nil {
-		return 0, err
+		return 0, errors.Wrap(err, "parse amount")
 	}
 	if amount <= 0 {
-		return 0, errors.New("amount cannot be negative or 0")
+		return 0, errInvalidAmount
 	}
 	return int64(math.Round(amount * cntKopInRub)), nil
 }
@@ -174,7 +118,7 @@ func (s *Model) reportHandler(userID int64, params []string) string {
 	report := s.repo.NewReport(userID, period)
 	var sb strings.Builder
 	for _, item := range report {
-		sb.WriteString(item.Category.Name)
+		sb.WriteString(item.Category)
 		sb.WriteString(": ")
 		sb.WriteString(fmt.Sprintf("%.2f\n", float64(item.Amount)/cntKopInRub))
 	}

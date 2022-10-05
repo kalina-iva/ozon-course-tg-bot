@@ -2,7 +2,4 @@ package messages
 
 import "github.com/pkg/errors"
 
-var (
-	errCategoryNotFound      = errors.New("category not found")
-	errInvalidCategoryNumber = errors.New("invalid category number")
-)
+var errInvalidAmount = errors.New("amount cannot be negative or 0")
