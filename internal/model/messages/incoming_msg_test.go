@@ -19,7 +19,7 @@ func Test_OnStartCommand_ShouldAnswerWithIntroMessage(t *testing.T) {
 Описание команд:
 /newexpense {category} {amount} {date} - добавление нового расхода. Если дата не указана, используется текущая
 /report {y|m|w} - получение отчета за последний год/месяц/неделю
-`, int64(123))
+`, nil, int64(123))
 
 	err := model.IncomingMessage(Message{
 		Text:   "/start",
@@ -36,7 +36,7 @@ func Test_OnUnknownCommand_ShouldAnswerWithHelpMessage(t *testing.T) {
 	repo := mocks.NewMockrepository(ctrl)
 	model := New(sender, repo)
 
-	sender.EXPECT().SendMessage("Неизвестная команда", int64(123))
+	sender.EXPECT().SendMessage("Неизвестная команда", nil, int64(123))
 
 	err := model.IncomingMessage(Message{
 		Text:   "some text",
@@ -53,7 +53,7 @@ func Test_OnNewExpenseCommand_WrongAmount(t *testing.T) {
 	repo := mocks.NewMockrepository(ctrl)
 	model := New(sender, repo)
 
-	sender.EXPECT().SendMessage("Некорректная сумма расхода", int64(123))
+	sender.EXPECT().SendMessage("Некорректная сумма расхода", nil, int64(123))
 
 	err := model.IncomingMessage(Message{
 		Text:   "/newexpense category 0 02-10-2022",
@@ -70,7 +70,7 @@ func Test_OnNewExpenseCommand_incorrectDate(t *testing.T) {
 	repo := mocks.NewMockrepository(ctrl)
 	model := New(sender, repo)
 
-	sender.EXPECT().SendMessage("Некорректная дата", int64(123))
+	sender.EXPECT().SendMessage("Некорректная дата", nil, int64(123))
 
 	err := model.IncomingMessage(Message{
 		Text:   "/newexpense category 76.10 29-02-2022",
@@ -87,8 +87,8 @@ func Test_OnNewExpenseCommand_onOk(t *testing.T) {
 	repo := mocks.NewMockrepository(ctrl)
 	model := New(sender, repo)
 
-	repo.EXPECT().NewExpense(int64(123), "category", int64(7610), int64(1644451200))
-	sender.EXPECT().SendMessage("Расход добавлен", int64(123))
+	repo.EXPECT().NewExpense(int64(123), "category", uint64(7610), int64(1644451200))
+	sender.EXPECT().SendMessage("Расход добавлен", nil, int64(123))
 
 	err := model.IncomingMessage(Message{
 		Text:   "/newexpense category 76.10 02-10-2022",
@@ -105,7 +105,7 @@ func Test_OnReportCommand_withoutPeriod(t *testing.T) {
 	repo := mocks.NewMockrepository(ctrl)
 	model := New(sender, repo)
 
-	sender.EXPECT().SendMessage("Необходимо указать период", int64(123))
+	sender.EXPECT().SendMessage("Необходимо указать период", nil, int64(123))
 
 	err := model.IncomingMessage(Message{
 		Text:   "/report",
@@ -122,7 +122,7 @@ func Test_OnReportCommand_wrongPeriod(t *testing.T) {
 	repo := mocks.NewMockrepository(ctrl)
 	model := New(sender, repo)
 
-	sender.EXPECT().SendMessage("Некорректный период", int64(123))
+	sender.EXPECT().SendMessage("Некорректный период", nil, int64(123))
 
 	err := model.IncomingMessage(Message{
 		Text:   "/report a",

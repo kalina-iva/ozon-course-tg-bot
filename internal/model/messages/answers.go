@@ -14,4 +14,6 @@ const (
 	invalidDate           = "Некорректная дата"
 	needPeriod            = "Необходимо указать период"
 	invalidPeriod         = "Некорректный период"
+	chooseCurrency        = "Выберите валюту"
+	currencySaved         = "Валюта установлена"
 )

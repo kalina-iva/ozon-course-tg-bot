@@ -14,12 +14,13 @@ import (
 const cntKopInRub = 100
 
 type messageSender interface {
-	SendMessage(text string, userID int64) error
+	SendMessage(text string, cases []string, userID int64) (int, error)
 }
 
 type repository interface {
-	NewExpense(userID int64, category string, amount int64, date int64)
+	NewExpense(userID int64, category string, amount uint64, date int64)
 	NewReport(userID int64, period int64) []*entity.Report
+	SetCurrency(userID int64, currency string)
 }
 
 type Model struct {
@@ -39,8 +40,15 @@ type Message struct {
 	UserID int64
 }
 
-func (s *Model) IncomingMessage(msg Message) error {
+type CallbackQuery struct {
+	ID     int
+	Data   string
+	UserID int64
+}
+
+func (s *Model) IncomingMessage(msg Message) (err error) {
 	var text string
+	var cases []string
 
 	params := strings.Split(msg.Text, " ")
 	switch params[0] {
@@ -52,10 +60,21 @@ func (s *Model) IncomingMessage(msg Message) error {
 		text = s.newExpenseHandler(msg.UserID, params)
 	case "/report":
 		text = s.reportHandler(msg.UserID, params)
+	case "/setcurrency":
+		text = chooseCurrency
+		cases = []string{"USD", "CNY", "EUR", "RUB"}
 	default:
 		text = unknownCommand
 	}
-	return s.tgClient.SendMessage(text, msg.UserID)
+	_, err = s.tgClient.SendMessage(text, cases, msg.UserID)
+
+	return
+}
+
+func (s *Model) DoAction(msg CallbackQuery) (err error) {
+	s.repo.SetCurrency(msg.UserID, msg.Data)
+	_, err = s.tgClient.SendMessage(currencySaved, nil, msg.UserID)
+	return
 }
 
 func (s *Model) newExpenseHandler(userID int64, params []string) string {
@@ -85,7 +104,7 @@ func (s *Model) newExpenseHandler(userID int64, params []string) string {
 	return expenseAdded
 }
 
-func (s *Model) checkAmount(amountStr string) (int64, error) {
+func (s *Model) checkAmount(amountStr string) (uint64, error) {
 	const bitSize = 64
 	amount, err := strconv.ParseFloat(amountStr, bitSize)
 	if err != nil {
@@ -94,7 +113,7 @@ func (s *Model) checkAmount(amountStr string) (int64, error) {
 	if amount <= 0 {
 		return 0, errInvalidAmount
 	}
-	return int64(math.Round(amount * cntKopInRub)), nil
+	return uint64(math.Round(amount * cntKopInRub)), nil
 }
 
 func (s *Model) reportHandler(userID int64, params []string) string {

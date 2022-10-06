@@ -27,12 +27,25 @@ func New(tokenGetter tokenGetter) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) SendMessage(text string, userID int64) error {
-	_, err := c.client.Send(tgbotapi.NewMessage(userID, text))
-	if err != nil {
-		return errors.Wrap(err, "cannot client.Send")
+func (c *Client) SendMessage(text string, cases []string, userID int64) (int, error) {
+	msg := tgbotapi.NewMessage(userID, text)
+
+	if len(cases) > 0 {
+		keyboard := tgbotapi.InlineKeyboardMarkup{}
+		for _, value := range cases {
+			var row []tgbotapi.InlineKeyboardButton
+			btn := tgbotapi.NewInlineKeyboardButtonData(value, value)
+			row = append(row, btn)
+			keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, row)
+		}
+		msg.ReplyMarkup = keyboard
 	}
-	return nil
+
+	res, err := c.client.Send(msg)
+	if err != nil {
+		return 0, errors.Wrap(err, "cannot client.Send")
+	}
+	return res.MessageID, nil
 }
 
 func (c *Client) ListenUpdates(msgModel *messages.Model) {
@@ -53,6 +66,17 @@ func (c *Client) ListenUpdates(msgModel *messages.Model) {
 			})
 			if err != nil {
 				log.Println("error processing message:", err)
+			}
+		} else if update.CallbackQuery != nil {
+			log.Printf("[%s] callback %s", update.CallbackQuery.From.UserName, update.CallbackQuery.Data)
+
+			err := msgModel.DoAction(messages.CallbackQuery{
+				ID:     update.CallbackQuery.Message.MessageID,
+				Data:   update.CallbackQuery.Data,
+				UserID: update.CallbackQuery.From.ID,
+			})
+			if err != nil {
+				log.Println("error processing callback:", err)
 			}
 		}
 	}
