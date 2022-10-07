@@ -18,9 +18,9 @@ func New() *Expense {
 
 func (m *Expense) NewExpense(userID int64, category string, amount uint64, date int64) {
 	m.expenses[userID] = append(m.expenses[userID], &entity.Expense{
-		Category: category,
-		Amount:   amount,
-		Date:     date,
+		Category:        category,
+		AmountInKopecks: amount,
+		Date:            date,
 	})
 }
 
@@ -29,14 +29,14 @@ func (m *Expense) NewReport(userID int64, period int64) []*entity.Report {
 	expenses := m.expenses[userID]
 	for _, expense := range expenses {
 		if expense.Date >= period {
-			reportMap[expense.Category] += expense.Amount
+			reportMap[expense.Category] += expense.AmountInKopecks
 		}
 	}
 	report := make([]*entity.Report, 0, len(reportMap))
 	for category, amount := range reportMap {
 		report = append(report, &entity.Report{
-			Category: category,
-			Amount:   amount,
+			Category:        category,
+			AmountInKopecks: amount,
 		})
 	}
 	return report
@@ -44,4 +44,9 @@ func (m *Expense) NewReport(userID int64, period int64) []*entity.Report {
 
 func (m *Expense) SetCurrency(userID int64, currency string) {
 	m.currency[userID] = currency
+}
+
+func (m *Expense) GetCurrency(userID int64) string {
+	currency := m.currency[userID]
+	return currency
 }

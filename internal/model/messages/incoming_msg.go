@@ -2,16 +2,23 @@ package messages
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	"math"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages/entity"
 )
 
-const cntKopInRub = 100
+const (
+	cntKopInRub     = 100
+	defaultCurrency = "RUB"
+)
+
+type currencyRepository interface {
+	GetRate(currency string) (float64, error)
+}
 
 type messageSender interface {
 	SendMessage(text string, cases []string, userID int64) (int, error)
@@ -21,17 +28,20 @@ type repository interface {
 	NewExpense(userID int64, category string, amount uint64, date int64)
 	NewReport(userID int64, period int64) []*entity.Report
 	SetCurrency(userID int64, currency string)
+	GetCurrency(userID int64) string
 }
 
 type Model struct {
-	tgClient messageSender
-	repo     repository
+	tgClient           messageSender
+	repo               repository
+	currencyRepository currencyRepository
 }
 
-func New(tgClient messageSender, repo repository) *Model {
+func New(tgClient messageSender, repo repository, currencyRepo currencyRepository) *Model {
 	return &Model{
-		tgClient: tgClient,
-		repo:     repo,
+		tgClient:           tgClient,
+		repo:               repo,
+		currencyRepository: currencyRepo,
 	}
 }
 
@@ -62,7 +72,7 @@ func (s *Model) IncomingMessage(msg Message) (err error) {
 		text = s.reportHandler(msg.UserID, params)
 	case "/setcurrency":
 		text = chooseCurrency
-		cases = []string{"USD", "CNY", "EUR", "RUB"}
+		cases = []string{"RUB", "USD", "EUR", "CNY"}
 	default:
 		text = unknownCommand
 	}
@@ -83,7 +93,7 @@ func (s *Model) newExpenseHandler(userID int64, params []string) string {
 		return needCategoryAndAmount
 	}
 	category := params[1]
-	amount, err := s.checkAmount(params[2])
+	amount, err := s.parseAmount(userID, params[2])
 	if err != nil {
 		return invalidAmount
 	}
@@ -104,7 +114,7 @@ func (s *Model) newExpenseHandler(userID int64, params []string) string {
 	return expenseAdded
 }
 
-func (s *Model) checkAmount(amountStr string) (uint64, error) {
+func (s *Model) parseAmount(userID int64, amountStr string) (uint64, error) {
 	const bitSize = 64
 	amount, err := strconv.ParseFloat(amountStr, bitSize)
 	if err != nil {
@@ -113,6 +123,11 @@ func (s *Model) checkAmount(amountStr string) (uint64, error) {
 	if amount <= 0 {
 		return 0, errInvalidAmount
 	}
+	rate, err := s.getCustomCurrencyRate(userID)
+	if err != nil {
+		return 0, errors.Wrap(err, "get currency rate")
+	}
+	amount /= rate
 	return uint64(math.Round(amount * cntKopInRub)), nil
 }
 
@@ -134,12 +149,31 @@ func (s *Model) reportHandler(userID int64, params []string) string {
 		return invalidPeriod
 	}
 
+	rate, err := s.getCustomCurrencyRate(userID)
+	if err != nil {
+		return canNotGateRate
+	}
+
 	report := s.repo.NewReport(userID, period)
 	var sb strings.Builder
 	for _, item := range report {
+		amount := float64(item.AmountInKopecks) * rate
 		sb.WriteString(item.Category)
 		sb.WriteString(": ")
-		sb.WriteString(fmt.Sprintf("%.2f\n", float64(item.Amount)/cntKopInRub))
+		sb.WriteString(fmt.Sprintf("%.2f\n", amount/cntKopInRub))
 	}
 	return sb.String()
+}
+
+func (s *Model) getCustomCurrencyRate(userID int64) (float64, error) {
+	currency := s.repo.GetCurrency(userID)
+	if len(currency) == 0 {
+		currency = defaultCurrency
+	}
+
+	rate, err := s.currencyRepository.GetRate(currency)
+	if err != nil {
+		return 0, err
+	}
+	return rate, nil
 }

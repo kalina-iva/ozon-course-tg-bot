@@ -11,6 +11,44 @@ import (
 	entity "gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages/entity"
 )
 
+// MockcurrencyRepository is a mock of currencyRepository interface.
+type MockcurrencyRepository struct {
+	ctrl     *gomock.Controller
+	recorder *MockcurrencyRepositoryMockRecorder
+}
+
+// MockcurrencyRepositoryMockRecorder is the mock recorder for MockcurrencyRepository.
+type MockcurrencyRepositoryMockRecorder struct {
+	mock *MockcurrencyRepository
+}
+
+// NewMockcurrencyRepository creates a new mock instance.
+func NewMockcurrencyRepository(ctrl *gomock.Controller) *MockcurrencyRepository {
+	mock := &MockcurrencyRepository{ctrl: ctrl}
+	mock.recorder = &MockcurrencyRepositoryMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockcurrencyRepository) EXPECT() *MockcurrencyRepositoryMockRecorder {
+	return m.recorder
+}
+
+// GetRate mocks base method.
+func (m *MockcurrencyRepository) GetRate(currency string) (float64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRate", currency)
+	ret0, _ := ret[0].(float64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRate indicates an expected call of GetRate.
+func (mr *MockcurrencyRepositoryMockRecorder) GetRate(currency interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRate", reflect.TypeOf((*MockcurrencyRepository)(nil).GetRate), currency)
+}
+
 // MockmessageSender is a mock of messageSender interface.
 type MockmessageSender struct {
 	ctrl     *gomock.Controller
@@ -70,6 +108,20 @@ func NewMockrepository(ctrl *gomock.Controller) *Mockrepository {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *Mockrepository) EXPECT() *MockrepositoryMockRecorder {
 	return m.recorder
+}
+
+// GetCurrency mocks base method.
+func (m *Mockrepository) GetCurrency(userID int64) string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCurrency", userID)
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetCurrency indicates an expected call of GetCurrency.
+func (mr *MockrepositoryMockRecorder) GetCurrency(userID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCurrency", reflect.TypeOf((*Mockrepository)(nil).GetCurrency), userID)
 }
 
 // NewExpense mocks base method.
