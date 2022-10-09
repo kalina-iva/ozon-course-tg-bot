@@ -142,3 +142,40 @@ func Test_OnReportCommand_wrongPeriod(t *testing.T) {
 
 	assert.NoError(t, err)
 }
+
+func Test_OnSetCurrency_onOk(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	sender := mocks.NewMockmessageSender(ctrl)
+	repo := mocks.NewMockrepository(ctrl)
+	currencyRepo := mocks.NewMockcurrencyRepository(ctrl)
+	model := New(sender, repo, currencyRepo)
+
+	sender.EXPECT().SendMessage("Выберите валюту", []string{"RUB", "USD", "EUR", "CNY"}, int64(123))
+
+	err := model.IncomingMessage(Message{
+		Text:   "/setcurrency",
+		UserID: 123,
+	})
+
+	assert.NoError(t, err)
+}
+
+func Test_OnCallbackSetCurrency_onOk(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	sender := mocks.NewMockmessageSender(ctrl)
+	repo := mocks.NewMockrepository(ctrl)
+	currencyRepo := mocks.NewMockcurrencyRepository(ctrl)
+	model := New(sender, repo, currencyRepo)
+
+	repo.EXPECT().SetCurrency(int64(123), "USD")
+	sender.EXPECT().SendMessage("Валюта установлена", nil, int64(123))
+
+	err := model.SetCurrency(CallbackQuery{
+		Data:   "USD",
+		UserID: 123,
+	})
+
+	assert.NoError(t, err)
+}
