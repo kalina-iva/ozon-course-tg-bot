@@ -71,7 +71,6 @@ func (c *Client) ListenUpdates(msgModel *messages.Model) {
 			log.Printf("[%s] callback %s", update.CallbackQuery.From.UserName, update.CallbackQuery.Data)
 
 			err := msgModel.SetCurrency(messages.CallbackQuery{
-				ID:     update.CallbackQuery.Message.MessageID,
 				Data:   update.CallbackQuery.Data,
 				UserID: update.CallbackQuery.From.ID,
 			})

@@ -2,6 +2,7 @@ package messages
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"strconv"
 	"strings"
@@ -53,7 +54,6 @@ type Message struct {
 }
 
 type CallbackQuery struct {
-	ID     int
 	Data   string
 	UserID int64
 }
@@ -94,6 +94,7 @@ func (m *Model) newExpenseHandler(userID int64, params []string) string {
 	category := params[1]
 	amount, err := m.parseAmount(userID, params[2])
 	if err != nil {
+		log.Println("error parse amount:", err)
 		return invalidAmount
 	}
 
@@ -101,6 +102,7 @@ func (m *Model) newExpenseHandler(userID int64, params []string) string {
 	if len(params) == cntRequiredParams+1 {
 		t, err := time.Parse("01-02-2006", params[3])
 		if err != nil {
+			log.Println("error parse date:", err)
 			return invalidDate
 		}
 		date = t.Unix()
@@ -152,6 +154,7 @@ func (m *Model) reportHandler(userID int64, params []string) string {
 	code := m.getCurrencyCode(userID)
 	rate, err := m.currencyRepository.GetRate(code)
 	if err != nil {
+		log.Println("cannot get rate from repo:", err)
 		return canNotGetRate
 	}
 
