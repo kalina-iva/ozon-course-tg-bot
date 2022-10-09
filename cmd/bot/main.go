@@ -25,7 +25,12 @@ func main() {
 	repo := memory.New()
 	currencyRepo := currency.New()
 
-	exchangeRateService := exchangeRate.New(currencyRepo, cfg.CurrencyAPIKey())
+	exchangeRateService := exchangeRate.New(
+		currencyRepo,
+		cfg.ExchangeRateAPIKey(),
+		cfg.ExchangeRateBaseURI(),
+		cfg.ExchangeRateTimeout(),
+	)
 	exchangeRateService.Run()
 
 	msgModel := messages.New(tgClient, repo, currencyRepo)

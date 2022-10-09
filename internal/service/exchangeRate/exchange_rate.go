@@ -21,17 +21,21 @@ type currencyRepository interface {
 
 type Service struct {
 	currencyRepository currencyRepository
-	currencyAPIKey     string
+	cAPIKey            string
+	baseURI            string
+	timeoutInMin       time.Duration
 }
 
 type currencyResult struct {
 	Rates map[string]float64 `json:"rates"`
 }
 
-func New(currencyRepo currencyRepository, currencyAPIKey string) *Service {
+func New(currencyRepo currencyRepository, cAPIKey string, baseURI string, timeoutInMin int64) *Service {
 	return &Service{
 		currencyRepository: currencyRepo,
-		currencyAPIKey:     currencyAPIKey,
+		cAPIKey:            cAPIKey,
+		baseURI:            baseURI,
+		timeoutInMin:       time.Duration(timeoutInMin),
 	}
 }
 
@@ -43,7 +47,7 @@ func (s *Service) Run() {
 			if err != nil {
 				log.Println("cannot get rates: ", err)
 			}
-			time.Sleep(time.Minute)
+			time.Sleep(s.timeoutInMin * time.Minute)
 		}
 	}()
 
@@ -62,7 +66,8 @@ func (s *Service) getRates(ch chan<- currencyResult) error {
 	defer cancel()
 
 	url := fmt.Sprintf(
-		"https://api.apilayer.com/fixer/latest?base=%s&symbols=%s",
+		"%s?base=%s&symbols=%s",
+		s.baseURI,
 		messages.DefaultCurrencyCode,
 		strings.Join(messages.AvailableCurrencies, ","),
 	)
@@ -71,7 +76,7 @@ func (s *Service) getRates(ch chan<- currencyResult) error {
 	if err != nil {
 		return errors.Wrap(err, "cannot create request")
 	}
-	request.Header.Set("apikey", s.currencyAPIKey)
+	request.Header.Set("apikey", s.cAPIKey)
 
 	client := &http.Client{}
 	res, err := client.Do(request)
