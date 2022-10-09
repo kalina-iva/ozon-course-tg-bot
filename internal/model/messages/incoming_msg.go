@@ -12,16 +12,18 @@ import (
 )
 
 const (
-	cntKopInRub     = 100
-	defaultCurrency = "RUB"
+	cntKopInRub         = 100
+	DefaultCurrencyCode = "RUB"
 )
 
+var AvailableCurrencies = []string{"RUB", "USD", "EUR", "CNY"}
+
 type currencyRepository interface {
-	GetRate(currency string) (float64, error)
+	GetRate(code string) (float64, error)
 }
 
 type messageSender interface {
-	SendMessage(text string, cases []string, userID int64) (int, error)
+	SendMessage(text string, cases []string, userID int64) error
 }
 
 type repository interface {
@@ -56,7 +58,7 @@ type CallbackQuery struct {
 	UserID int64
 }
 
-func (s *Model) IncomingMessage(msg Message) (err error) {
+func (m *Model) IncomingMessage(msg Message) (err error) {
 	var text string
 	var cases []string
 
@@ -67,33 +69,30 @@ func (s *Model) IncomingMessage(msg Message) (err error) {
 	case "/help":
 		text = manual
 	case "/newexpense":
-		text = s.newExpenseHandler(msg.UserID, params)
+		text = m.newExpenseHandler(msg.UserID, params)
 	case "/report":
-		text = s.reportHandler(msg.UserID, params)
+		text = m.reportHandler(msg.UserID, params)
 	case "/setcurrency":
 		text = chooseCurrency
-		cases = []string{"RUB", "USD", "EUR", "CNY"}
+		cases = AvailableCurrencies
 	default:
 		text = unknownCommand
 	}
-	_, err = s.tgClient.SendMessage(text, cases, msg.UserID)
-
-	return
+	return m.tgClient.SendMessage(text, cases, msg.UserID)
 }
 
-func (s *Model) DoAction(msg CallbackQuery) (err error) {
-	s.repo.SetCurrency(msg.UserID, msg.Data)
-	_, err = s.tgClient.SendMessage(currencySaved, nil, msg.UserID)
-	return
+func (m *Model) SetCurrency(msg CallbackQuery) (err error) {
+	m.repo.SetCurrency(msg.UserID, msg.Data)
+	return m.tgClient.SendMessage(currencySaved, nil, msg.UserID)
 }
 
-func (s *Model) newExpenseHandler(userID int64, params []string) string {
+func (m *Model) newExpenseHandler(userID int64, params []string) string {
 	const cntRequiredParams = 3
 	if len(params) < cntRequiredParams {
 		return needCategoryAndAmount
 	}
 	category := params[1]
-	amount, err := s.parseAmount(userID, params[2])
+	amount, err := m.parseAmount(userID, params[2])
 	if err != nil {
 		return invalidAmount
 	}
@@ -109,12 +108,12 @@ func (s *Model) newExpenseHandler(userID int64, params []string) string {
 		date = time.Now().Unix()
 	}
 
-	s.repo.NewExpense(userID, category, amount, date)
+	m.repo.NewExpense(userID, category, amount, date)
 
 	return expenseAdded
 }
 
-func (s *Model) parseAmount(userID int64, amountStr string) (uint64, error) {
+func (m *Model) parseAmount(userID int64, amountStr string) (uint64, error) {
 	const bitSize = 64
 	amount, err := strconv.ParseFloat(amountStr, bitSize)
 	if err != nil {
@@ -123,15 +122,16 @@ func (s *Model) parseAmount(userID int64, amountStr string) (uint64, error) {
 	if amount <= 0 {
 		return 0, errInvalidAmount
 	}
-	rate, err := s.getCustomCurrencyRate(userID)
+	code := m.getCurrencyCode(userID)
+	rate, err := m.currencyRepository.GetRate(code)
 	if err != nil {
-		return 0, errors.Wrap(err, "get currency rate")
+		return 0, errors.Wrap(err, "get exchange rate")
 	}
 	amount /= rate
 	return uint64(math.Round(amount * cntKopInRub)), nil
 }
 
-func (s *Model) reportHandler(userID int64, params []string) string {
+func (m *Model) reportHandler(userID int64, params []string) string {
 	const cntRequiredParams = 2
 	if len(params) < cntRequiredParams {
 		return needPeriod
@@ -149,31 +149,41 @@ func (s *Model) reportHandler(userID int64, params []string) string {
 		return invalidPeriod
 	}
 
-	rate, err := s.getCustomCurrencyRate(userID)
+	code := m.getCurrencyCode(userID)
+	rate, err := m.currencyRepository.GetRate(code)
 	if err != nil {
-		return canNotGateRate
+		return canNotGetRate
 	}
 
-	report := s.repo.NewReport(userID, period)
+	currencyShort := getCurrencyShortByCode(code)
+	report := m.repo.NewReport(userID, period)
 	var sb strings.Builder
 	for _, item := range report {
 		amount := float64(item.AmountInKopecks) * rate
 		sb.WriteString(item.Category)
-		sb.WriteString(": ")
-		sb.WriteString(fmt.Sprintf("%.2f\n", amount/cntKopInRub))
+		sb.WriteString(fmt.Sprintf(": %.2f %v\n", amount/cntKopInRub, currencyShort))
 	}
 	return sb.String()
 }
 
-func (s *Model) getCustomCurrencyRate(userID int64) (float64, error) {
-	currency := s.repo.GetCurrency(userID)
-	if len(currency) == 0 {
-		currency = defaultCurrency
+func (m *Model) getCurrencyCode(userID int64) string {
+	code := m.repo.GetCurrency(userID)
+	if len(code) == 0 {
+		code = DefaultCurrencyCode
 	}
+	return code
+}
 
-	rate, err := s.currencyRepository.GetRate(currency)
-	if err != nil {
-		return 0, err
+func getCurrencyShortByCode(code string) (short string) {
+	switch code {
+	case "RUB":
+		short = "₽"
+	case "USD":
+		short = "＄"
+	case "EUR":
+		short = "€"
+	case "CNY":
+		short = "元"
 	}
-	return rate, nil
+	return
 }

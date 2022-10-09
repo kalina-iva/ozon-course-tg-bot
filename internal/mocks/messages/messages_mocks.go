@@ -35,18 +35,18 @@ func (m *MockcurrencyRepository) EXPECT() *MockcurrencyRepositoryMockRecorder {
 }
 
 // GetRate mocks base method.
-func (m *MockcurrencyRepository) GetRate(currency string) (float64, error) {
+func (m *MockcurrencyRepository) GetRate(code string) (float64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRate", currency)
+	ret := m.ctrl.Call(m, "GetRate", code)
 	ret0, _ := ret[0].(float64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetRate indicates an expected call of GetRate.
-func (mr *MockcurrencyRepositoryMockRecorder) GetRate(currency interface{}) *gomock.Call {
+func (mr *MockcurrencyRepositoryMockRecorder) GetRate(code interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRate", reflect.TypeOf((*MockcurrencyRepository)(nil).GetRate), currency)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRate", reflect.TypeOf((*MockcurrencyRepository)(nil).GetRate), code)
 }
 
 // MockmessageSender is a mock of messageSender interface.
@@ -73,12 +73,11 @@ func (m *MockmessageSender) EXPECT() *MockmessageSenderMockRecorder {
 }
 
 // SendMessage mocks base method.
-func (m *MockmessageSender) SendMessage(text string, cases []string, userID int64) (int, error) {
+func (m *MockmessageSender) SendMessage(text string, cases []string, userID int64) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendMessage", text, cases, userID)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // SendMessage indicates an expected call of SendMessage.

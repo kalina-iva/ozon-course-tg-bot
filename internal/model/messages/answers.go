@@ -16,5 +16,5 @@ const (
 	invalidPeriod         = "Некорректный период"
 	chooseCurrency        = "Выберите валюту"
 	currencySaved         = "Валюта установлена"
-	canNotGateRate        = "Не могу получить курс валют"
+	canNotGetRate         = "Не могу получить курс валют"
 )
