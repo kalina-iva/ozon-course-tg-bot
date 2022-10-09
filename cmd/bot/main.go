@@ -8,6 +8,7 @@ import (
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/repository/currency"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/repository/memory"
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/service/exchangeRate"
 )
 
 func main() {
@@ -23,7 +24,10 @@ func main() {
 
 	repo := memory.New()
 	currencyRepo := currency.New()
-	msgModel := messages.New(tgClient, repo, currencyRepo)
 
+	exchangeRateService := exchangeRate.New(currencyRepo, cfg.CurrencyAPIKey())
+	exchangeRateService.Run()
+
+	msgModel := messages.New(tgClient, repo, currencyRepo)
 	tgClient.ListenUpdates(msgModel)
 }

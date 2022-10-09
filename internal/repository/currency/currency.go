@@ -1,20 +1,25 @@
 package currency
 
+import "github.com/pkg/errors"
+
 type Currency struct {
 	rates map[string]float64
 }
 
 func New() *Currency {
-	rates := make(map[string]float64)
-	rates["RUB"] = 1
-	rates["USD"] = 2
-	rates["EUR"] = 3
-	rates["CNY"] = 4
 	return &Currency{
-		rates: rates,
+		rates: make(map[string]float64),
 	}
 }
 
-func (c *Currency) GetRate(currency string) (float64, error) {
-	return c.rates[currency], nil
+func (c *Currency) GetRate(code string) (float64, error) {
+	rate, has := c.rates[code]
+	if !has {
+		return 0, errors.New("exchange rate not found by currency code")
+	}
+	return rate, nil
+}
+
+func (c *Currency) SaveRate(code string, rate float64) {
+	c.rates[code] = rate
 }

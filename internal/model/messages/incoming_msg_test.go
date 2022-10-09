@@ -74,6 +74,8 @@ func Test_OnNewExpenseCommand_incorrectDate(t *testing.T) {
 	currencyRepo := mocks.NewMockcurrencyRepository(ctrl)
 	model := New(sender, repo, currencyRepo)
 
+	repo.EXPECT().GetCurrency(int64(123))
+	currencyRepo.EXPECT().GetRate("RUB").Return(float64(1), nil)
 	sender.EXPECT().SendMessage("Некорректная дата", nil, int64(123))
 
 	err := model.IncomingMessage(Message{
@@ -92,6 +94,8 @@ func Test_OnNewExpenseCommand_onOk(t *testing.T) {
 	currencyRepo := mocks.NewMockcurrencyRepository(ctrl)
 	model := New(sender, repo, currencyRepo)
 
+	repo.EXPECT().GetCurrency(int64(123))
+	currencyRepo.EXPECT().GetRate("RUB").Return(float64(1), nil)
 	repo.EXPECT().NewExpense(int64(123), "category", uint64(7610), int64(1644451200))
 	sender.EXPECT().SendMessage("Расход добавлен", nil, int64(123))
 

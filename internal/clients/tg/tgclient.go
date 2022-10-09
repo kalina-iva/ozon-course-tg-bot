@@ -27,7 +27,7 @@ func New(tokenGetter tokenGetter) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) SendMessage(text string, cases []string, userID int64) (int, error) {
+func (c *Client) SendMessage(text string, cases []string, userID int64) error {
 	msg := tgbotapi.NewMessage(userID, text)
 
 	if len(cases) > 0 {
@@ -41,11 +41,11 @@ func (c *Client) SendMessage(text string, cases []string, userID int64) (int, er
 		msg.ReplyMarkup = keyboard
 	}
 
-	res, err := c.client.Send(msg)
+	_, err := c.client.Send(msg)
 	if err != nil {
-		return 0, errors.Wrap(err, "cannot client.Send")
+		return errors.Wrap(err, "cannot client.Send")
 	}
-	return res.MessageID, nil
+	return nil
 }
 
 func (c *Client) ListenUpdates(msgModel *messages.Model) {
@@ -70,7 +70,7 @@ func (c *Client) ListenUpdates(msgModel *messages.Model) {
 		} else if update.CallbackQuery != nil {
 			log.Printf("[%s] callback %s", update.CallbackQuery.From.UserName, update.CallbackQuery.Data)
 
-			err := msgModel.DoAction(messages.CallbackQuery{
+			err := msgModel.SetCurrency(messages.CallbackQuery{
 				ID:     update.CallbackQuery.Message.MessageID,
 				Data:   update.CallbackQuery.Data,
 				UserID: update.CallbackQuery.From.ID,

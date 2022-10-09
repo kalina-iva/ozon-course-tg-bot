@@ -11,7 +11,7 @@ const configFile = "data/config.yaml"
 
 type config struct {
 	Token          string `yaml:"token"`
-	CurrencyAPIKey string `yaml:"CurrencyAPIKey"`
+	CurrencyAPIKey string `yaml:"currencyAPIKey"`
 }
 
 type Service struct {
@@ -36,4 +36,8 @@ func New() (*Service, error) {
 
 func (s *Service) Token() string {
 	return s.config.Token
+}
+
+func (s *Service) CurrencyAPIKey() string {
+	return s.config.CurrencyAPIKey
 }
