@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -23,34 +24,47 @@ type Service struct {
 	currencyRepository currencyRepository
 	cAPIKey            string
 	baseURI            string
-	timeoutInMin       time.Duration
+	refreshRateInMin   time.Duration
+	wg                 sync.WaitGroup
+	cancel             context.CancelFunc
 }
 
 type currencyResult struct {
 	Rates map[string]float64 `json:"rates"`
 }
 
-func New(currencyRepo currencyRepository, cAPIKey string, baseURI string, timeoutInMin int64) *Service {
+func New(currencyRepo currencyRepository, cAPIKey string, baseURI string, refreshRateInMin int64) *Service {
 	return &Service{
 		currencyRepository: currencyRepo,
 		cAPIKey:            cAPIKey,
 		baseURI:            baseURI,
-		timeoutInMin:       time.Duration(timeoutInMin),
+		refreshRateInMin:   time.Duration(refreshRateInMin) * time.Minute,
 	}
 }
 
 func (s *Service) Run() {
 	chanForResp := make(chan currencyResult)
+	var ctx context.Context
+	ctx, s.cancel = context.WithCancel(context.Background())
+
+	s.wg.Add(1)
 	go func() {
 		for {
-			err := s.getRates(chanForResp)
-			if err != nil {
-				log.Println("cannot get rates: ", err)
+			select {
+			case <-time.After(s.refreshRateInMin):
+				err := s.getRates(chanForResp)
+				if err != nil {
+					log.Println("cannot get rates: ", err)
+				}
+			case <-ctx.Done():
+				close(chanForResp)
+				s.wg.Done()
+				return
 			}
-			time.Sleep(s.timeoutInMin * time.Minute)
 		}
 	}()
 
+	s.wg.Add(1)
 	go func() {
 		for result := range chanForResp {
 			for code, rate := range result.Rates {
@@ -58,6 +72,7 @@ func (s *Service) Run() {
 				s.currencyRepository.SaveRate(code, rate)
 			}
 		}
+		s.wg.Done()
 	}()
 }
 
@@ -96,4 +111,9 @@ func (s *Service) getRates(ch chan<- currencyResult) error {
 	log.Println("exchange rate was successfully received")
 	ch <- result
 	return nil
+}
+
+func (s *Service) Close() {
+	s.cancel()
+	s.wg.Wait()
 }

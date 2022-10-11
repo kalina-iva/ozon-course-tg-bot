@@ -10,9 +10,9 @@ import (
 const configFile = "data/config.yaml"
 
 type exchangeRate struct {
-	APIKey       string `yaml:"API_key"`
-	BaseURI      string `yaml:"base_uri"`
-	TimeoutInMin int64  `yaml:"timeout_in_min"`
+	APIKey           string `yaml:"API_key"`
+	BaseURI          string `yaml:"base_uri"`
+	RefreshRateInMin int64  `yaml:"refresh_rate_in_min"`
 }
 
 type config struct {
@@ -52,6 +52,6 @@ func (s *Service) ExchangeRateBaseURI() string {
 	return s.config.ExchangeRate.BaseURI
 }
 
-func (s *Service) ExchangeRateTimeout() int64 {
-	return s.config.ExchangeRate.TimeoutInMin
+func (s *Service) ExchangeRateRefreshRateInMin() int64 {
+	return s.config.ExchangeRate.RefreshRateInMin
 }

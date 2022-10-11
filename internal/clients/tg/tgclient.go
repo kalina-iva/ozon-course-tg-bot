@@ -2,6 +2,7 @@ package tg
 
 import (
 	"log"
+	"sync"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/pkg/errors"
@@ -14,6 +15,7 @@ type tokenGetter interface {
 
 type Client struct {
 	client *tgbotapi.BotAPI
+	wg     sync.WaitGroup
 }
 
 func New(tokenGetter tokenGetter) (*Client, error) {
@@ -56,6 +58,7 @@ func (c *Client) ListenUpdates(msgModel *messages.Model) {
 
 	log.Println("listening for messages")
 
+	c.wg.Add(1)
 	for update := range updates {
 		if update.Message != nil {
 			log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
@@ -79,4 +82,10 @@ func (c *Client) ListenUpdates(msgModel *messages.Model) {
 			}
 		}
 	}
+	c.wg.Done()
+}
+
+func (c *Client) Close() {
+	c.client.StopReceivingUpdates()
+	c.wg.Wait()
 }
