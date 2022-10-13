@@ -2,11 +2,16 @@ package main
 
 import (
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/clients/tg"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/config"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages"
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/repository/currency"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/repository/memory"
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/service/exchangeRate"
 )
 
 func main() {
@@ -21,7 +26,23 @@ func main() {
 	}
 
 	repo := memory.New()
-	msgModel := messages.New(tgClient, repo)
+	currencyRepo := currency.New()
 
-	tgClient.ListenUpdates(msgModel)
+	exchangeRateService := exchangeRate.New(
+		currencyRepo,
+		cfg.ExchangeRateAPIKey(),
+		cfg.ExchangeRateBaseURI(),
+		cfg.ExchangeRateRefreshRateInMin(),
+	)
+	exchangeRateService.Run()
+
+	msgModel := messages.New(tgClient, repo, currencyRepo)
+	go tgClient.ListenUpdates(msgModel)
+
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	<-done
+
+	exchangeRateService.Close()
+	tgClient.Close()
 }

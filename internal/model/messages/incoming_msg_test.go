@@ -6,7 +6,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	mocks "gitlab.ozon.dev/mary.kalina/telegram-bot/internal/mocks/messages"
-	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages/entity"
 )
 
 func Test_OnStartCommand_ShouldAnswerWithIntroMessage(t *testing.T) {
@@ -14,15 +13,14 @@ func Test_OnStartCommand_ShouldAnswerWithIntroMessage(t *testing.T) {
 
 	sender := mocks.NewMockmessageSender(ctrl)
 	repo := mocks.NewMockrepository(ctrl)
-	model := New(sender, repo)
+	currencyRepo := mocks.NewMockcurrencyRepository(ctrl)
+	model := New(sender, repo, currencyRepo)
 
 	sender.EXPECT().SendMessage(`Привет! Это дневник расходов.
 Описание команд:
-/newcat {name} - добавление новой категории
-/allcat - просмотр всех категории
-/newexpense {categoryNumber} {amount} {date} - добавление нового расхода. Если дата не указана, используется текущая
+/newexpense {category} {amount} {date} - добавление нового расхода. Если дата не указана, используется текущая
 /report {y|m|w} - получение отчета за последний год/месяц/неделю
-`, int64(123))
+`, nil, int64(123))
 
 	err := model.IncomingMessage(Message{
 		Text:   "/start",
@@ -37,125 +35,13 @@ func Test_OnUnknownCommand_ShouldAnswerWithHelpMessage(t *testing.T) {
 
 	sender := mocks.NewMockmessageSender(ctrl)
 	repo := mocks.NewMockrepository(ctrl)
-	model := New(sender, repo)
+	currencyRepo := mocks.NewMockcurrencyRepository(ctrl)
+	model := New(sender, repo, currencyRepo)
 
-	sender.EXPECT().SendMessage("Неизвестная команда", int64(123))
+	sender.EXPECT().SendMessage("Неизвестная команда", nil, int64(123))
 
 	err := model.IncomingMessage(Message{
 		Text:   "some text",
-		UserID: 123,
-	})
-
-	assert.NoError(t, err)
-}
-
-func Test_OnNewCatCommand_ShouldAnswerWithError(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	sender := mocks.NewMockmessageSender(ctrl)
-	repo := mocks.NewMockrepository(ctrl)
-	model := New(sender, repo)
-
-	sender.EXPECT().SendMessage("Нет названия категории", int64(123))
-
-	err := model.IncomingMessage(Message{
-		Text:   "/newcat",
-		UserID: 123,
-	})
-
-	assert.NoError(t, err)
-}
-
-func Test_OnNewCatCommand_NameOfSeveralWords(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	sender := mocks.NewMockmessageSender(ctrl)
-	repo := mocks.NewMockrepository(ctrl)
-	model := New(sender, repo)
-
-	repo.EXPECT().NewCategory(int64(123), "new category").Return(&entity.Category{
-		Number: 1,
-		Name:   "new category",
-	})
-	sender.EXPECT().SendMessage("Создана категория new category. Ее номер 1", int64(123))
-
-	err := model.IncomingMessage(Message{
-		Text:   "/newcat new category",
-		UserID: 123,
-	})
-
-	assert.NoError(t, err)
-}
-
-func Test_OnAllCatCommand_NoCategories(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	sender := mocks.NewMockmessageSender(ctrl)
-	repo := mocks.NewMockrepository(ctrl)
-	model := New(sender, repo)
-
-	repo.EXPECT().GetCategories(int64(123)).Return(nil)
-	sender.EXPECT().SendMessage("Нет категорий", int64(123))
-
-	err := model.IncomingMessage(Message{
-		Text:   "/allcat",
-		UserID: 123,
-	})
-
-	assert.NoError(t, err)
-}
-
-func Test_OnAllCatCommand_TwoCategories(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	sender := mocks.NewMockmessageSender(ctrl)
-	repo := mocks.NewMockrepository(ctrl)
-	model := New(sender, repo)
-
-	categories := []*entity.Category{
-		{Number: 1, Name: "new category"},
-		{Number: 2, Name: "second category"},
-	}
-	repo.EXPECT().GetCategories(int64(123)).Return(categories)
-	sender.EXPECT().SendMessage("1. new category\n2. second category\n", int64(123))
-
-	err := model.IncomingMessage(Message{
-		Text:   "/allcat",
-		UserID: 123,
-	})
-
-	assert.NoError(t, err)
-}
-
-func Test_OnNewExpenseCommand_CategoryNotFound(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	sender := mocks.NewMockmessageSender(ctrl)
-	repo := mocks.NewMockrepository(ctrl)
-	model := New(sender, repo)
-
-	repo.EXPECT().GetCategories(int64(123)).Return(nil)
-	sender.EXPECT().SendMessage("Не найдена категория с номером 1", int64(123))
-
-	err := model.IncomingMessage(Message{
-		Text:   "/newexpense 1 76.10 02-10-2022",
-		UserID: 123,
-	})
-
-	assert.NoError(t, err)
-}
-
-func Test_OnNewExpenseCommand_WrongCategory(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	sender := mocks.NewMockmessageSender(ctrl)
-	repo := mocks.NewMockrepository(ctrl)
-	model := New(sender, repo)
-
-	sender.EXPECT().SendMessage("Некорректный номер категории", int64(123))
-
-	err := model.IncomingMessage(Message{
-		Text:   "/newexpense cat 76.10 02-10-2022",
 		UserID: 123,
 	})
 
@@ -167,16 +53,13 @@ func Test_OnNewExpenseCommand_WrongAmount(t *testing.T) {
 
 	sender := mocks.NewMockmessageSender(ctrl)
 	repo := mocks.NewMockrepository(ctrl)
-	model := New(sender, repo)
+	currencyRepo := mocks.NewMockcurrencyRepository(ctrl)
+	model := New(sender, repo, currencyRepo)
 
-	categories := []*entity.Category{
-		{Number: 1, Name: "new category"},
-	}
-	repo.EXPECT().GetCategories(int64(123)).Return(categories)
-	sender.EXPECT().SendMessage("Некорректная сумма расхода", int64(123))
+	sender.EXPECT().SendMessage("Некорректная сумма расхода", nil, int64(123))
 
 	err := model.IncomingMessage(Message{
-		Text:   "/newexpense 1 0 02-10-2022",
+		Text:   "/newexpense category 0 02-10-2022",
 		UserID: 123,
 	})
 
@@ -188,16 +71,15 @@ func Test_OnNewExpenseCommand_incorrectDate(t *testing.T) {
 
 	sender := mocks.NewMockmessageSender(ctrl)
 	repo := mocks.NewMockrepository(ctrl)
-	model := New(sender, repo)
+	currencyRepo := mocks.NewMockcurrencyRepository(ctrl)
+	model := New(sender, repo, currencyRepo)
 
-	categories := []*entity.Category{
-		{Number: 1, Name: "new category"},
-	}
-	repo.EXPECT().GetCategories(int64(123)).Return(categories)
-	sender.EXPECT().SendMessage("Некорректная дата", int64(123))
+	repo.EXPECT().GetCurrency(int64(123))
+	currencyRepo.EXPECT().GetRate("RUB").Return(float64(1), nil)
+	sender.EXPECT().SendMessage("Некорректная дата", nil, int64(123))
 
 	err := model.IncomingMessage(Message{
-		Text:   "/newexpense 1 76.10 29-02-2022",
+		Text:   "/newexpense category 76.10 29-02-2022",
 		UserID: 123,
 	})
 
@@ -209,16 +91,16 @@ func Test_OnNewExpenseCommand_onOk(t *testing.T) {
 
 	sender := mocks.NewMockmessageSender(ctrl)
 	repo := mocks.NewMockrepository(ctrl)
-	model := New(sender, repo)
+	currencyRepo := mocks.NewMockcurrencyRepository(ctrl)
+	model := New(sender, repo, currencyRepo)
 
-	category := entity.Category{Number: 1, Name: "new category"}
-	categories := []*entity.Category{&category}
-	repo.EXPECT().GetCategories(int64(123)).Return(categories)
-	repo.EXPECT().NewExpense(int64(123), category, int64(7610), int64(1644451200))
-	sender.EXPECT().SendMessage("Расход добавлен", int64(123))
+	repo.EXPECT().GetCurrency(int64(123))
+	currencyRepo.EXPECT().GetRate("RUB").Return(float64(1), nil)
+	repo.EXPECT().NewExpense(int64(123), "category", uint64(7610), int64(1644451200))
+	sender.EXPECT().SendMessage("Расход добавлен", nil, int64(123))
 
 	err := model.IncomingMessage(Message{
-		Text:   "/newexpense 1 76.10 02-10-2022",
+		Text:   "/newexpense category 76.10 02-10-2022",
 		UserID: 123,
 	})
 
@@ -230,9 +112,10 @@ func Test_OnReportCommand_withoutPeriod(t *testing.T) {
 
 	sender := mocks.NewMockmessageSender(ctrl)
 	repo := mocks.NewMockrepository(ctrl)
-	model := New(sender, repo)
+	currencyRepo := mocks.NewMockcurrencyRepository(ctrl)
+	model := New(sender, repo, currencyRepo)
 
-	sender.EXPECT().SendMessage("Необходимо указать период", int64(123))
+	sender.EXPECT().SendMessage("Необходимо указать период", nil, int64(123))
 
 	err := model.IncomingMessage(Message{
 		Text:   "/report",
@@ -247,12 +130,50 @@ func Test_OnReportCommand_wrongPeriod(t *testing.T) {
 
 	sender := mocks.NewMockmessageSender(ctrl)
 	repo := mocks.NewMockrepository(ctrl)
-	model := New(sender, repo)
+	currencyRepo := mocks.NewMockcurrencyRepository(ctrl)
+	model := New(sender, repo, currencyRepo)
 
-	sender.EXPECT().SendMessage("Некорректный период", int64(123))
+	sender.EXPECT().SendMessage("Некорректный период", nil, int64(123))
 
 	err := model.IncomingMessage(Message{
 		Text:   "/report a",
+		UserID: 123,
+	})
+
+	assert.NoError(t, err)
+}
+
+func Test_OnSetCurrency_onOk(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	sender := mocks.NewMockmessageSender(ctrl)
+	repo := mocks.NewMockrepository(ctrl)
+	currencyRepo := mocks.NewMockcurrencyRepository(ctrl)
+	model := New(sender, repo, currencyRepo)
+
+	sender.EXPECT().SendMessage("Выберите валюту", []string{"RUB", "USD", "EUR", "CNY"}, int64(123))
+
+	err := model.IncomingMessage(Message{
+		Text:   "/setcurrency",
+		UserID: 123,
+	})
+
+	assert.NoError(t, err)
+}
+
+func Test_OnCallbackSetCurrency_onOk(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	sender := mocks.NewMockmessageSender(ctrl)
+	repo := mocks.NewMockrepository(ctrl)
+	currencyRepo := mocks.NewMockcurrencyRepository(ctrl)
+	model := New(sender, repo, currencyRepo)
+
+	repo.EXPECT().SetCurrency(int64(123), "USD")
+	sender.EXPECT().SendMessage("Валюта установлена", nil, int64(123))
+
+	err := model.SetCurrency(CallbackQuery{
+		Data:   "USD",
 		UserID: 123,
 	})
 

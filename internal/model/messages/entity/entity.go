@@ -1,17 +1,13 @@
 package entity
 
-type Category struct {
-	Number int
-	Name   string
-}
-
 type Expense struct {
-	Category Category
-	Amount   int64
-	Date     int64
+	Category        string
+	AmountInKopecks uint64
+	Date            int64
 }
 
 type Report struct {
-	Category Category
-	Amount   int64
+	Category        string
+	AmountInKopecks uint64
+	Currency        string
 }
