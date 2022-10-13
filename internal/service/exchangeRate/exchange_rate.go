@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -21,32 +22,49 @@ type currencyRepository interface {
 
 type Service struct {
 	currencyRepository currencyRepository
-	currencyAPIKey     string
+	cAPIKey            string
+	baseURI            string
+	refreshRateInMin   time.Duration
+	wg                 sync.WaitGroup
+	cancel             context.CancelFunc
 }
 
 type currencyResult struct {
 	Rates map[string]float64 `json:"rates"`
 }
 
-func New(currencyRepo currencyRepository, currencyAPIKey string) *Service {
+func New(currencyRepo currencyRepository, cAPIKey string, baseURI string, refreshRateInMin int64) *Service {
 	return &Service{
 		currencyRepository: currencyRepo,
-		currencyAPIKey:     currencyAPIKey,
+		cAPIKey:            cAPIKey,
+		baseURI:            baseURI,
+		refreshRateInMin:   time.Duration(refreshRateInMin) * time.Minute,
 	}
 }
 
 func (s *Service) Run() {
 	chanForResp := make(chan currencyResult)
+	var ctx context.Context
+	ctx, s.cancel = context.WithCancel(context.Background())
+
+	s.wg.Add(1)
 	go func() {
 		for {
-			err := s.getRates(chanForResp)
-			if err != nil {
-				log.Println("cannot get rates: ", err)
+			select {
+			case <-time.After(s.refreshRateInMin):
+				err := s.getRates(chanForResp)
+				if err != nil {
+					log.Println("cannot get rates: ", err)
+				}
+			case <-ctx.Done():
+				close(chanForResp)
+				s.wg.Done()
+				return
 			}
-			time.Sleep(time.Minute)
 		}
 	}()
 
+	s.wg.Add(1)
 	go func() {
 		for result := range chanForResp {
 			for code, rate := range result.Rates {
@@ -54,6 +72,7 @@ func (s *Service) Run() {
 				s.currencyRepository.SaveRate(code, rate)
 			}
 		}
+		s.wg.Done()
 	}()
 }
 
@@ -62,7 +81,8 @@ func (s *Service) getRates(ch chan<- currencyResult) error {
 	defer cancel()
 
 	url := fmt.Sprintf(
-		"https://api.apilayer.com/fixer/latest?base=%s&symbols=%s",
+		"%s?base=%s&symbols=%s",
+		s.baseURI,
 		messages.DefaultCurrencyCode,
 		strings.Join(messages.AvailableCurrencies, ","),
 	)
@@ -71,7 +91,7 @@ func (s *Service) getRates(ch chan<- currencyResult) error {
 	if err != nil {
 		return errors.Wrap(err, "cannot create request")
 	}
-	request.Header.Set("apikey", s.currencyAPIKey)
+	request.Header.Set("apikey", s.cAPIKey)
 
 	client := &http.Client{}
 	res, err := client.Do(request)
@@ -91,4 +111,9 @@ func (s *Service) getRates(ch chan<- currencyResult) error {
 	log.Println("exchange rate was successfully received")
 	ch <- result
 	return nil
+}
+
+func (s *Service) Close() {
+	s.cancel()
+	s.wg.Wait()
 }
