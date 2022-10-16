@@ -5,7 +5,7 @@ create table if not exists expenses
 (
     id         integer generated always as identity
         primary key,
-    user_id    integer   not null,
+    user_id    bigint    not null,
     category   text      not null,
     amount     integer   not null,
     created_at timestamp not null

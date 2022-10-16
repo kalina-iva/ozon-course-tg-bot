@@ -229,5 +229,5 @@ func (m *Model) delLimitHandler(userID int64) string {
 		log.Println("cannot parse amount:", err)
 		return canNotSaveLimit
 	}
-	return limitSaved
+	return limitDeleted
 }

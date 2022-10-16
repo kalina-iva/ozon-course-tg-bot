@@ -34,19 +34,19 @@ func main() {
 		log.Fatal("tg client init failed:", err)
 	}
 
-	repo := memory.NewExpense()
-	currencyRepo := memory.NewCurrency()
+	expenseRepo := memory.NewExpense()
+	exchangeRateRepo := database.NewRateDb(conn)
 	userRepo := database.NewUserDb(conn)
 
 	exchangeRateService := exchangeRate.New(
-		currencyRepo,
+		exchangeRateRepo,
 		cfg.ExchangeRateAPIKey(),
 		cfg.ExchangeRateBaseURI(),
 		cfg.ExchangeRateRefreshRateInMin(),
 	)
 	exchangeRateService.Run()
 
-	msgModel := messages.New(tgClient, repo, currencyRepo, userRepo)
+	msgModel := messages.New(tgClient, expenseRepo, exchangeRateRepo, userRepo)
 	go tgClient.ListenUpdates(msgModel)
 
 	done := make(chan os.Signal, 1)

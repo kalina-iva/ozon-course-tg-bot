@@ -19,5 +19,6 @@ const (
 	canNotGetRate         = "Не могу получить курс валют"
 	canNotSaveCurrency    = "Возникла ошибка при установлении валюты"
 	limitSaved            = "Лимит установлен"
-	canNotSaveLimit       = "Возникла ошибка при установлении лимита"
+	canNotSaveLimit       = "Возникла ошибка при изменении лимита"
+	limitDeleted          = "Лимит сброшен"
 )

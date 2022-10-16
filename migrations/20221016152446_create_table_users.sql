@@ -3,10 +3,10 @@
 
 create table if not exists users
 (
-    user_id       integer   not null
+    user_id       bigint   not null
         primary key,
     currency_code text,
-    monthly_limit integer,
+    monthly_limit bigint,
     updated_at    timestamp not null
 );
 
