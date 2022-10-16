@@ -12,9 +12,10 @@ func Test_OnStartCommand_ShouldAnswerWithIntroMessage(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	sender := mocks.NewMockmessageSender(ctrl)
-	repo := mocks.NewMockrepository(ctrl)
-	currencyRepo := mocks.NewMockcurrencyRepository(ctrl)
-	model := New(sender, repo, currencyRepo)
+	expenseRepo := mocks.NewMockexpenseRepository(ctrl)
+	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
+	userRepo := mocks.NewMockuserRepository(ctrl)
+	model := New(sender, expenseRepo, rateRepository, userRepo)
 
 	sender.EXPECT().SendMessage(`Привет! Это дневник расходов.
 Описание команд:
@@ -34,9 +35,10 @@ func Test_OnUnknownCommand_ShouldAnswerWithHelpMessage(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	sender := mocks.NewMockmessageSender(ctrl)
-	repo := mocks.NewMockrepository(ctrl)
-	currencyRepo := mocks.NewMockcurrencyRepository(ctrl)
-	model := New(sender, repo, currencyRepo)
+	expenseRepo := mocks.NewMockexpenseRepository(ctrl)
+	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
+	userRepo := mocks.NewMockuserRepository(ctrl)
+	model := New(sender, expenseRepo, rateRepository, userRepo)
 
 	sender.EXPECT().SendMessage("Неизвестная команда", nil, int64(123))
 
@@ -52,9 +54,10 @@ func Test_OnNewExpenseCommand_WrongAmount(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	sender := mocks.NewMockmessageSender(ctrl)
-	repo := mocks.NewMockrepository(ctrl)
-	currencyRepo := mocks.NewMockcurrencyRepository(ctrl)
-	model := New(sender, repo, currencyRepo)
+	expenseRepo := mocks.NewMockexpenseRepository(ctrl)
+	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
+	userRepo := mocks.NewMockuserRepository(ctrl)
+	model := New(sender, expenseRepo, rateRepository, userRepo)
 
 	sender.EXPECT().SendMessage("Некорректная сумма расхода", nil, int64(123))
 
@@ -70,12 +73,13 @@ func Test_OnNewExpenseCommand_incorrectDate(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	sender := mocks.NewMockmessageSender(ctrl)
-	repo := mocks.NewMockrepository(ctrl)
-	currencyRepo := mocks.NewMockcurrencyRepository(ctrl)
-	model := New(sender, repo, currencyRepo)
+	expenseRepo := mocks.NewMockexpenseRepository(ctrl)
+	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
+	userRepo := mocks.NewMockuserRepository(ctrl)
+	model := New(sender, expenseRepo, rateRepository, userRepo)
 
-	repo.EXPECT().GetCurrency(int64(123))
-	currencyRepo.EXPECT().GetRate("RUB").Return(float64(1), nil)
+	userRepo.EXPECT().GetCurrency(int64(123))
+	rateRepository.EXPECT().GetRate("RUB").Return(float64(1), nil)
 	sender.EXPECT().SendMessage("Некорректная дата", nil, int64(123))
 
 	err := model.IncomingMessage(Message{
@@ -90,13 +94,14 @@ func Test_OnNewExpenseCommand_onOk(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	sender := mocks.NewMockmessageSender(ctrl)
-	repo := mocks.NewMockrepository(ctrl)
-	currencyRepo := mocks.NewMockcurrencyRepository(ctrl)
-	model := New(sender, repo, currencyRepo)
+	expenseRepo := mocks.NewMockexpenseRepository(ctrl)
+	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
+	userRepo := mocks.NewMockuserRepository(ctrl)
+	model := New(sender, expenseRepo, rateRepository, userRepo)
 
-	repo.EXPECT().GetCurrency(int64(123))
-	currencyRepo.EXPECT().GetRate("RUB").Return(float64(1), nil)
-	repo.EXPECT().NewExpense(int64(123), "category", uint64(7610), int64(1644451200))
+	userRepo.EXPECT().GetCurrency(int64(123))
+	rateRepository.EXPECT().GetRate("RUB").Return(float64(1), nil)
+	expenseRepo.EXPECT().New(int64(123), "category", uint64(7610), int64(1644451200))
 	sender.EXPECT().SendMessage("Расход добавлен", nil, int64(123))
 
 	err := model.IncomingMessage(Message{
@@ -111,9 +116,10 @@ func Test_OnReportCommand_withoutPeriod(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	sender := mocks.NewMockmessageSender(ctrl)
-	repo := mocks.NewMockrepository(ctrl)
-	currencyRepo := mocks.NewMockcurrencyRepository(ctrl)
-	model := New(sender, repo, currencyRepo)
+	expenseRepo := mocks.NewMockexpenseRepository(ctrl)
+	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
+	userRepo := mocks.NewMockuserRepository(ctrl)
+	model := New(sender, expenseRepo, rateRepository, userRepo)
 
 	sender.EXPECT().SendMessage("Необходимо указать период", nil, int64(123))
 
@@ -129,9 +135,10 @@ func Test_OnReportCommand_wrongPeriod(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	sender := mocks.NewMockmessageSender(ctrl)
-	repo := mocks.NewMockrepository(ctrl)
-	currencyRepo := mocks.NewMockcurrencyRepository(ctrl)
-	model := New(sender, repo, currencyRepo)
+	expenseRepo := mocks.NewMockexpenseRepository(ctrl)
+	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
+	userRepo := mocks.NewMockuserRepository(ctrl)
+	model := New(sender, expenseRepo, rateRepository, userRepo)
 
 	sender.EXPECT().SendMessage("Некорректный период", nil, int64(123))
 
@@ -147,9 +154,10 @@ func Test_OnSetCurrency_onOk(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	sender := mocks.NewMockmessageSender(ctrl)
-	repo := mocks.NewMockrepository(ctrl)
-	currencyRepo := mocks.NewMockcurrencyRepository(ctrl)
-	model := New(sender, repo, currencyRepo)
+	expenseRepo := mocks.NewMockexpenseRepository(ctrl)
+	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
+	userRepo := mocks.NewMockuserRepository(ctrl)
+	model := New(sender, expenseRepo, rateRepository, userRepo)
 
 	sender.EXPECT().SendMessage("Выберите валюту", []string{"RUB", "USD", "EUR", "CNY"}, int64(123))
 
@@ -165,11 +173,12 @@ func Test_OnCallbackSetCurrency_onOk(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	sender := mocks.NewMockmessageSender(ctrl)
-	repo := mocks.NewMockrepository(ctrl)
-	currencyRepo := mocks.NewMockcurrencyRepository(ctrl)
-	model := New(sender, repo, currencyRepo)
+	expenseRepo := mocks.NewMockexpenseRepository(ctrl)
+	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
+	userRepo := mocks.NewMockuserRepository(ctrl)
+	model := New(sender, expenseRepo, rateRepository, userRepo)
 
-	repo.EXPECT().SetCurrency(int64(123), "USD")
+	userRepo.EXPECT().SetCurrency(int64(123), "USD")
 	sender.EXPECT().SendMessage("Валюта установлена", nil, int64(123))
 
 	err := model.SetCurrency(CallbackQuery{

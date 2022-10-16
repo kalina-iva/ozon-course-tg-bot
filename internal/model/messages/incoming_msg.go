@@ -31,6 +31,9 @@ type expenseRepository interface {
 type userRepository interface {
 	SetCurrency(userID int64, currency string) error
 	GetCurrency(userID int64) *string
+	SetLimit(userID int64, limit uint64) error
+	DelLimit(userID int64) error
+	GetLimit(userID int64) *uint64
 }
 
 type messageSender interface {
@@ -85,6 +88,10 @@ func (m *Model) IncomingMessage(msg Message) (err error) {
 	case "/setcurrency":
 		text = chooseCurrency
 		cases = AvailableCurrencies
+	case "/setlimit":
+		text = m.limitHandler(msg.UserID, params)
+	case "/dellimit":
+		text = m.delLimitHandler(msg.UserID)
 	default:
 		text = unknownCommand
 	}
@@ -92,8 +99,7 @@ func (m *Model) IncomingMessage(msg Message) (err error) {
 }
 
 func (m *Model) SetCurrency(msg CallbackQuery) error {
-	err := m.userRepo.SetCurrency(msg.UserID, msg.Data)
-	if err != nil {
+	if err := m.userRepo.SetCurrency(msg.UserID, msg.Data); err != nil {
 		log.Println("cannot set currency:", err)
 		return m.tgClient.SendMessage(canNotSaveCurrency, nil, msg.UserID)
 	}
@@ -203,4 +209,25 @@ func getCurrencyShortByCode(code string) (short string) {
 		short = "元"
 	}
 	return
+}
+
+func (m *Model) limitHandler(userID int64, params []string) string {
+	amount, err := m.parseAmount(userID, params[1])
+	if err != nil {
+		log.Println("cannot parse amount:", err)
+		return invalidAmount
+	}
+	if err := m.userRepo.SetLimit(userID, amount); err != nil {
+		log.Println("cannot parse amount:", err)
+		return canNotSaveLimit
+	}
+	return limitSaved
+}
+
+func (m *Model) delLimitHandler(userID int64) string {
+	if err := m.userRepo.DelLimit(userID); err != nil {
+		log.Println("cannot parse amount:", err)
+		return canNotSaveLimit
+	}
+	return limitSaved
 }

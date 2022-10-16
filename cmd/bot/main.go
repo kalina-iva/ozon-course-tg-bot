@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/repository/database"
-	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/repository/memory"
 	"log"
 	"os"
 	"os/signal"
@@ -13,6 +11,8 @@ import (
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/clients/tg"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/config"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages"
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/repository/database"
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/repository/memory"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/service/exchangeRate"
 )
 
@@ -27,7 +27,7 @@ func main() {
 		log.Fatal("cannot connect to database:", err)
 	}
 	defer conn.Close(context.Background())
-	//conn.Ping()
+	// conn.Ping()
 
 	tgClient, err := tg.New(cfg)
 	if err != nil {

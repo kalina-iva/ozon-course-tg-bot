@@ -3,10 +3,11 @@ package database
 import (
 	"context"
 	"fmt"
-	"github.com/jackc/pgx/v5"
-	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages/entity"
 	"log"
 	"time"
+
+	"github.com/jackc/pgx/v5"
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages/entity"
 )
 
 type UserDB struct {
@@ -30,6 +31,7 @@ func (u *UserDB) GetUser(userID int64) *entity.User {
 	}
 	defer rows.Close()
 
+	var user *entity.User
 	for rows.Next() {
 		var currencyCode *string
 		var monthlyLimit *uint64
@@ -38,26 +40,14 @@ func (u *UserDB) GetUser(userID int64) *entity.User {
 			log.Fatal("Row scan failed:", err)
 		}
 
-		return &entity.User{
+		user = &entity.User{
 			UserID:       userID,
 			CurrencyCode: currencyCode,
 			MonthlyLimit: monthlyLimit,
 			UpdatedAt:    updatedAt.Unix(),
 		}
 	}
-	return nil
-}
-
-func (u *UserDB) SetCurrency(userID int64, currency string) error {
-	user := u.GetUser(userID)
-	var err error
-	if user == nil {
-		err = u.CreateUser(userID, &currency, nil)
-	} else {
-		_, err = u.conn.Exec(context.Background(), "update users set currency_code = $1 where user_id = $2", currency, userID)
-	}
-
-	return err
+	return user
 }
 
 func (u *UserDB) CreateUser(userID int64, currency *string, monthlyLimit *uint64) error {
@@ -73,10 +63,51 @@ func (u *UserDB) CreateUser(userID int64, currency *string, monthlyLimit *uint64
 	return err
 }
 
+func (u *UserDB) SetCurrency(userID int64, currency string) error {
+	user := u.GetUser(userID)
+	var err error
+	if user == nil {
+		err = u.CreateUser(userID, &currency, nil)
+	} else {
+		_, err = u.conn.Exec(context.Background(), "update users set currency_code = $1 where user_id = $2", currency, userID)
+	}
+
+	return err
+}
+
 func (u *UserDB) GetCurrency(userID int64) *string {
 	user := u.GetUser(userID)
 	if user != nil {
 		return user.CurrencyCode
 	}
 	return nil
+}
+
+func (u *UserDB) SetLimit(userID int64, limit uint64) error {
+	user := u.GetUser(userID)
+	var err error
+	if user == nil {
+		err = u.CreateUser(userID, nil, &limit)
+	} else {
+		_, err = u.conn.Exec(context.Background(), "update users set monthly_limit = $1 where user_id = $2", limit, userID)
+	}
+
+	return err
+}
+
+func (u *UserDB) GetLimit(userID int64) *uint64 {
+	user := u.GetUser(userID)
+	if user != nil {
+		return user.MonthlyLimit
+	}
+	return nil
+}
+
+func (u *UserDB) DelLimit(userID int64) error {
+	user := u.GetUser(userID)
+	var err error
+	if user != nil {
+		_, err = u.conn.Exec(context.Background(), "update users set monthly_limit = $1 where user_id = $2", nil, userID)
+	}
+	return err
 }
