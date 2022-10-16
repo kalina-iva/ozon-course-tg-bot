@@ -1,4 +1,4 @@
-package currency
+package memory
 
 import "github.com/pkg/errors"
 
@@ -6,7 +6,7 @@ type Currency struct {
 	rates map[string]float64
 }
 
-func New() *Currency {
+func NewCurrency() *Currency {
 	return &Currency{
 		rates: make(map[string]float64),
 	}

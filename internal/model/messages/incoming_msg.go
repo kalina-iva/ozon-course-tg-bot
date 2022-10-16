@@ -19,32 +19,42 @@ const (
 
 var AvailableCurrencies = []string{"RUB", "USD", "EUR", "CNY"}
 
-type currencyRepository interface {
+type exchangeRateRepository interface {
 	GetRate(code string) (float64, error)
+}
+
+type expenseRepository interface {
+	New(userID int64, category string, amount uint64, date int64)
+	Report(userID int64, period int64) []*entity.Report
+}
+
+type userRepository interface {
+	SetCurrency(userID int64, currency string) error
+	GetCurrency(userID int64) *string
 }
 
 type messageSender interface {
 	SendMessage(text string, cases []string, userID int64) error
 }
 
-type repository interface {
-	NewExpense(userID int64, category string, amount uint64, date int64)
-	NewReport(userID int64, period int64) []*entity.Report
-	SetCurrency(userID int64, currency string)
-	GetCurrency(userID int64) string
-}
-
 type Model struct {
-	tgClient           messageSender
-	repo               repository
-	currencyRepository currencyRepository
+	tgClient         messageSender
+	expenseRepo      expenseRepository
+	exchangeRateRepo exchangeRateRepository
+	userRepo         userRepository
 }
 
-func New(tgClient messageSender, repo repository, currencyRepo currencyRepository) *Model {
+func New(
+	tgClient messageSender,
+	expenseRepo expenseRepository,
+	exchangeRateRepo exchangeRateRepository,
+	userRepo userRepository,
+) *Model {
 	return &Model{
-		tgClient:           tgClient,
-		repo:               repo,
-		currencyRepository: currencyRepo,
+		tgClient:         tgClient,
+		expenseRepo:      expenseRepo,
+		exchangeRateRepo: exchangeRateRepo,
+		userRepo:         userRepo,
 	}
 }
 
@@ -81,8 +91,12 @@ func (m *Model) IncomingMessage(msg Message) (err error) {
 	return m.tgClient.SendMessage(text, cases, msg.UserID)
 }
 
-func (m *Model) SetCurrency(msg CallbackQuery) (err error) {
-	m.repo.SetCurrency(msg.UserID, msg.Data)
+func (m *Model) SetCurrency(msg CallbackQuery) error {
+	err := m.userRepo.SetCurrency(msg.UserID, msg.Data)
+	if err != nil {
+		log.Println("cannot set currency:", err)
+		return m.tgClient.SendMessage(canNotSaveCurrency, nil, msg.UserID)
+	}
 	return m.tgClient.SendMessage(currencySaved, nil, msg.UserID)
 }
 
@@ -94,7 +108,7 @@ func (m *Model) newExpenseHandler(userID int64, params []string) string {
 	category := params[1]
 	amount, err := m.parseAmount(userID, params[2])
 	if err != nil {
-		log.Println("error parse amount:", err)
+		log.Println("cannot parse amount:", err)
 		return invalidAmount
 	}
 
@@ -110,7 +124,7 @@ func (m *Model) newExpenseHandler(userID int64, params []string) string {
 		date = time.Now().Unix()
 	}
 
-	m.repo.NewExpense(userID, category, amount, date)
+	m.expenseRepo.New(userID, category, amount, date)
 
 	return expenseAdded
 }
@@ -125,7 +139,7 @@ func (m *Model) parseAmount(userID int64, amountStr string) (uint64, error) {
 		return 0, errInvalidAmount
 	}
 	code := m.getCurrencyCode(userID)
-	rate, err := m.currencyRepository.GetRate(code)
+	rate, err := m.exchangeRateRepo.GetRate(code)
 	if err != nil {
 		return 0, errors.Wrap(err, "get exchange rate")
 	}
@@ -152,14 +166,14 @@ func (m *Model) reportHandler(userID int64, params []string) string {
 	}
 
 	code := m.getCurrencyCode(userID)
-	rate, err := m.currencyRepository.GetRate(code)
+	rate, err := m.exchangeRateRepo.GetRate(code)
 	if err != nil {
-		log.Println("cannot get rate from repo:", err)
+		log.Println("cannot get rate from expenseRepo:", err)
 		return canNotGetRate
 	}
 
 	currencyShort := getCurrencyShortByCode(code)
-	report := m.repo.NewReport(userID, period)
+	report := m.expenseRepo.Report(userID, period)
 	var sb strings.Builder
 	for _, item := range report {
 		amount := float64(item.AmountInKopecks) * rate
@@ -170,11 +184,11 @@ func (m *Model) reportHandler(userID int64, params []string) string {
 }
 
 func (m *Model) getCurrencyCode(userID int64) string {
-	code := m.repo.GetCurrency(userID)
-	if len(code) == 0 {
-		code = DefaultCurrencyCode
+	code := m.userRepo.GetCurrency(userID)
+	if code != nil {
+		return *code
 	}
-	return code
+	return DefaultCurrencyCode
 }
 
 func getCurrencyShortByCode(code string) (short string) {

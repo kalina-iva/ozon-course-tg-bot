@@ -124,21 +124,21 @@ func (mr *MockrepositoryMockRecorder) GetCurrency(userID interface{}) *gomock.Ca
 }
 
 // NewExpense mocks base method.
-func (m *Mockrepository) NewExpense(userID int64, category string, amount uint64, date int64) {
+func (m *Mockrepository) New(userID int64, category string, amount uint64, date int64) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "NewExpense", userID, category, amount, date)
+	m.ctrl.Call(m, "New", userID, category, amount, date)
 }
 
 // NewExpense indicates an expected call of NewExpense.
 func (mr *MockrepositoryMockRecorder) NewExpense(userID, category, amount, date interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewExpense", reflect.TypeOf((*Mockrepository)(nil).NewExpense), userID, category, amount, date)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "New", reflect.TypeOf((*Mockrepository)(nil).New), userID, category, amount, date)
 }
 
 // NewReport mocks base method.
-func (m *Mockrepository) NewReport(userID, period int64) []*entity.Report {
+func (m *Mockrepository) Report(userID, period int64) []*entity.Report {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewReport", userID, period)
+	ret := m.ctrl.Call(m, "Report", userID, period)
 	ret0, _ := ret[0].([]*entity.Report)
 	return ret0
 }
@@ -146,7 +146,7 @@ func (m *Mockrepository) NewReport(userID, period int64) []*entity.Report {
 // NewReport indicates an expected call of NewReport.
 func (mr *MockrepositoryMockRecorder) NewReport(userID, period interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewReport", reflect.TypeOf((*Mockrepository)(nil).NewReport), userID, period)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Report", reflect.TypeOf((*Mockrepository)(nil).Report), userID, period)
 }
 
 // SetCurrency mocks base method.

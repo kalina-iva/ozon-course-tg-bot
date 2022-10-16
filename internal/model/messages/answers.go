@@ -17,4 +17,5 @@ const (
 	chooseCurrency        = "Выберите валюту"
 	currencySaved         = "Валюта установлена"
 	canNotGetRate         = "Не могу получить курс валют"
+	canNotSaveCurrency    = "Возникла ошибка при установлении валюты"
 )

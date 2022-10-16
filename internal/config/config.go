@@ -18,6 +18,7 @@ type exchangeRate struct {
 type config struct {
 	Token        string       `yaml:"token"`
 	ExchangeRate exchangeRate `yaml:"exchange_rate"`
+	DatabaseDSN  string       `yaml:"db_dsn"`
 }
 
 type Service struct {
@@ -54,4 +55,8 @@ func (s *Service) ExchangeRateBaseURI() string {
 
 func (s *Service) ExchangeRateRefreshRateInMin() int64 {
 	return s.config.ExchangeRate.RefreshRateInMin
+}
+
+func (s *Service) DatabaseDSN() string {
+	return s.config.DatabaseDSN
 }

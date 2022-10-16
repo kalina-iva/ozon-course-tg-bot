@@ -11,3 +11,10 @@ type Report struct {
 	AmountInKopecks uint64
 	Currency        string
 }
+
+type User struct {
+	UserID       int64
+	CurrencyCode *string
+	MonthlyLimit *uint64
+	UpdatedAt    int64
+}
