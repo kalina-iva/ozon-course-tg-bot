@@ -6,6 +6,7 @@ package mock_messages
 
 import (
 	reflect "reflect"
+	time "time"
 
 	gomock "github.com/golang/mock/gomock"
 	entity "gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages/entity"
@@ -72,8 +73,22 @@ func (m *MockexpenseRepository) EXPECT() *MockexpenseRepositoryMockRecorder {
 	return m.recorder
 }
 
+// GetExpenses mocks base method.
+func (m *MockexpenseRepository) GetExpenses(userID int64, period time.Time) []*entity.Expense {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetExpenses", userID, period)
+	ret0, _ := ret[0].([]*entity.Expense)
+	return ret0
+}
+
+// GetExpenses indicates an expected call of GetExpenses.
+func (mr *MockexpenseRepositoryMockRecorder) GetExpenses(userID, period interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetExpenses", reflect.TypeOf((*MockexpenseRepository)(nil).GetExpenses), userID, period)
+}
+
 // New mocks base method.
-func (m *MockexpenseRepository) New(userID int64, category string, amount uint64, date int64) {
+func (m *MockexpenseRepository) New(userID int64, category string, amount uint64, date time.Time) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "New", userID, category, amount, date)
 }
@@ -82,20 +97,6 @@ func (m *MockexpenseRepository) New(userID int64, category string, amount uint64
 func (mr *MockexpenseRepositoryMockRecorder) New(userID, category, amount, date interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "New", reflect.TypeOf((*MockexpenseRepository)(nil).New), userID, category, amount, date)
-}
-
-// Report mocks base method.
-func (m *MockexpenseRepository) Report(userID, period int64) []*entity.Report {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Report", userID, period)
-	ret0, _ := ret[0].([]*entity.Report)
-	return ret0
-}
-
-// Report indicates an expected call of Report.
-func (mr *MockexpenseRepositoryMockRecorder) Report(userID, period interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Report", reflect.TypeOf((*MockexpenseRepository)(nil).Report), userID, period)
 }
 
 // MockuserRepository is a mock of userRepository interface.

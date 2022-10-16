@@ -2,10 +2,11 @@ package database
 
 import (
 	"context"
-	"github.com/jackc/pgx/v5"
-	"github.com/pkg/errors"
 	"log"
 	"time"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/pkg/errors"
 )
 
 type RateDB struct {

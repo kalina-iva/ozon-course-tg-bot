@@ -12,7 +12,6 @@ import (
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/config"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/repository/database"
-	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/repository/memory"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/service/exchangeRate"
 )
 
@@ -34,7 +33,7 @@ func main() {
 		log.Fatal("tg client init failed:", err)
 	}
 
-	expenseRepo := memory.NewExpense()
+	expenseRepo := database.NewExpenseDb(conn)
 	exchangeRateRepo := database.NewRateDb(conn)
 	userRepo := database.NewUserDb(conn)
 

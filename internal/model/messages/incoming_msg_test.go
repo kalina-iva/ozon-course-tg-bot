@@ -2,6 +2,7 @@ package messages
 
 import (
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -101,7 +102,8 @@ func Test_OnNewExpenseCommand_onOk(t *testing.T) {
 
 	userRepo.EXPECT().GetCurrency(int64(123))
 	rateRepository.EXPECT().GetRate("RUB").Return(float64(1), nil)
-	expenseRepo.EXPECT().New(int64(123), "category", uint64(7610), int64(1644451200))
+	expectedTime, _ := time.Parse("01-02-2006", "02-10-2022")
+	expenseRepo.EXPECT().New(int64(123), "category", uint64(7610), expectedTime)
 	sender.EXPECT().SendMessage("Расход добавлен", nil, int64(123))
 
 	err := model.IncomingMessage(Message{

@@ -1,6 +1,8 @@
 package memory
 
 import (
+	"time"
+
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages/entity"
 )
 
@@ -14,28 +16,22 @@ func NewExpense() *Expense {
 	}
 }
 
-func (m *Expense) New(userID int64, category string, amount uint64, date int64) {
-	m.expenses[userID] = append(m.expenses[userID], &entity.Expense{
+func (e *Expense) New(userID int64, category string, amount uint64, date time.Time) {
+	e.expenses[userID] = append(e.expenses[userID], &entity.Expense{
 		Category:        category,
 		AmountInKopecks: amount,
-		Date:            date,
+		Date:            date.Unix(),
 	})
 }
 
-func (m *Expense) Report(userID int64, period int64) []*entity.Report {
-	reportMap := make(map[string]uint64)
-	expenses := m.expenses[userID]
+func (e *Expense) GetExpenses(userID int64, period time.Time) []*entity.Expense {
+	expenses := e.expenses[userID]
+	periodUnix := period.Unix()
+	var filtered []*entity.Expense
 	for _, expense := range expenses {
-		if expense.Date >= period {
-			reportMap[expense.Category] += expense.AmountInKopecks
+		if expense.Date >= periodUnix {
+			filtered = append(filtered, expense)
 		}
 	}
-	report := make([]*entity.Report, 0, len(reportMap))
-	for category, amount := range reportMap {
-		report = append(report, &entity.Report{
-			Category:        category,
-			AmountInKopecks: amount,
-		})
-	}
-	return report
+	return filtered
 }

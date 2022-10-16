@@ -24,8 +24,8 @@ type exchangeRateRepository interface {
 }
 
 type expenseRepository interface {
-	New(userID int64, category string, amount uint64, date int64)
-	Report(userID int64, period int64) []*entity.Report
+	New(userID int64, category string, amount uint64, date time.Time)
+	GetExpenses(userID int64, period time.Time) []*entity.Expense
 }
 
 type userRepository interface {
@@ -118,16 +118,15 @@ func (m *Model) newExpenseHandler(userID int64, params []string) string {
 		return invalidAmount
 	}
 
-	var date int64
+	var date time.Time
 	if len(params) == cntRequiredParams+1 {
-		t, err := time.Parse("01-02-2006", params[3])
+		date, err = time.Parse("01-02-2006", params[3])
 		if err != nil {
 			log.Println("error parse date:", err)
 			return invalidDate
 		}
-		date = t.Unix()
 	} else {
-		date = time.Now().Unix()
+		date = time.Now()
 	}
 
 	m.expenseRepo.New(userID, category, amount, date)
@@ -158,15 +157,15 @@ func (m *Model) reportHandler(userID int64, params []string) string {
 	if len(params) < cntRequiredParams {
 		return needPeriod
 	}
-	var period int64
+	var period time.Time
 	now := time.Now()
 	switch params[1] {
 	case "y":
-		period = now.AddDate(-1, 0, 0).Unix()
+		period = now.AddDate(-1, 0, 0)
 	case "m":
-		period = now.AddDate(0, -1, 0).Unix()
+		period = now.AddDate(0, -1, 0)
 	case "w":
-		period = now.AddDate(0, 0, -7).Unix()
+		period = now.AddDate(0, 0, -7)
 	default:
 		return invalidPeriod
 	}
@@ -178,12 +177,16 @@ func (m *Model) reportHandler(userID int64, params []string) string {
 		return canNotGetRate
 	}
 
-	currencyShort := getCurrencyShortByCode(code)
-	report := m.expenseRepo.Report(userID, period)
+	report := make(map[string]uint64)
+	for _, expense := range m.expenseRepo.GetExpenses(userID, period) {
+		report[expense.Category] += expense.AmountInKopecks
+	}
+
 	var sb strings.Builder
-	for _, item := range report {
-		amount := float64(item.AmountInKopecks) * rate
-		sb.WriteString(item.Category)
+	currencyShort := getCurrencyShortByCode(code)
+	for category, amount := range report {
+		amount := float64(amount) * rate
+		sb.WriteString(category)
 		sb.WriteString(fmt.Sprintf(": %.2f %v\n", amount/cntKopInRub, currencyShort))
 	}
 	return sb.String()
