@@ -88,9 +88,11 @@ func (mr *MockexpenseRepositoryMockRecorder) GetExpenses(userID, period interfac
 }
 
 // New mocks base method.
-func (m *MockexpenseRepository) New(userID int64, category string, amount uint64, date time.Time) {
+func (m *MockexpenseRepository) New(userID int64, category string, amount uint64, date time.Time) error {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "New", userID, category, amount, date)
+	ret := m.ctrl.Call(m, "New", userID, category, amount, date)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // New indicates an expected call of New.

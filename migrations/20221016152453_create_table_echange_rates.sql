@@ -10,11 +10,14 @@ create table if not exists exchange_rates
     created_at    timestamp      not null
 );
 
+CREATE INDEX exchange_rates_currency_code_idx ON exchange_rates(currency_code);
+
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
 
+drop index exchange_rates_currency_code_idx;
 DROP TABLE exchange_rates;
 
 -- +goose StatementEnd

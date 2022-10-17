@@ -16,12 +16,13 @@ func NewExpense() *Expense {
 	}
 }
 
-func (e *Expense) New(userID int64, category string, amount uint64, date time.Time) {
+func (e *Expense) New(userID int64, category string, amount uint64, date time.Time) error {
 	e.expenses[userID] = append(e.expenses[userID], &entity.Expense{
 		Category:        category,
 		AmountInKopecks: amount,
 		Date:            date.Unix(),
 	})
+	return nil
 }
 
 func (e *Expense) GetExpenses(userID int64, period time.Time) []*entity.Expense {

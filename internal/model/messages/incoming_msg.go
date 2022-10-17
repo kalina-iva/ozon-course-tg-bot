@@ -24,7 +24,7 @@ type exchangeRateRepository interface {
 }
 
 type expenseRepository interface {
-	New(userID int64, category string, amount uint64, date time.Time)
+	New(userID int64, category string, amount uint64, date time.Time) error
 	GetExpenses(userID int64, period time.Time) []*entity.Expense
 }
 
@@ -122,14 +122,17 @@ func (m *Model) newExpenseHandler(userID int64, params []string) string {
 	if len(params) == cntRequiredParams+1 {
 		date, err = time.Parse("01-02-2006", params[3])
 		if err != nil {
-			log.Println("error parse date:", err)
+			log.Println("cannot parse date:", err)
 			return invalidDate
 		}
 	} else {
 		date = time.Now()
 	}
 
-	m.expenseRepo.New(userID, category, amount, date)
+	if err = m.expenseRepo.New(userID, category, amount, date); err != nil {
+		log.Println("cannot create expense:", err)
+		return canNotAddExpense
+	}
 
 	return expenseAdded
 }

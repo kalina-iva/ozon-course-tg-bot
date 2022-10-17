@@ -190,3 +190,45 @@ func Test_OnCallbackSetCurrency_onOk(t *testing.T) {
 
 	assert.NoError(t, err)
 }
+
+func Test_OnSetLimit_onOk(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	sender := mocks.NewMockmessageSender(ctrl)
+	expenseRepo := mocks.NewMockexpenseRepository(ctrl)
+	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
+	userRepo := mocks.NewMockuserRepository(ctrl)
+	model := New(sender, expenseRepo, rateRepository, userRepo)
+
+	userRepo.EXPECT().GetCurrency(int64(123))
+	rateRepository.EXPECT().GetRate("RUB").Return(float64(1), nil)
+	userRepo.EXPECT().SetLimit(int64(123), uint64(7000))
+	sender.EXPECT().SendMessage("Лимит установлен", nil, int64(123))
+
+	err := model.IncomingMessage(Message{
+		Text:   "/setlimit 70",
+		UserID: 123,
+	})
+
+	assert.NoError(t, err)
+}
+
+func Test_OnDelLimit_onOk(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	sender := mocks.NewMockmessageSender(ctrl)
+	expenseRepo := mocks.NewMockexpenseRepository(ctrl)
+	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
+	userRepo := mocks.NewMockuserRepository(ctrl)
+	model := New(sender, expenseRepo, rateRepository, userRepo)
+
+	userRepo.EXPECT().DelLimit(int64(123))
+	sender.EXPECT().SendMessage("Лимит сброшен", nil, int64(123))
+
+	err := model.IncomingMessage(Message{
+		Text:   "/dellimit",
+		UserID: 123,
+	})
+
+	assert.NoError(t, err)
+}

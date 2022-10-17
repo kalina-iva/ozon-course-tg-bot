@@ -19,7 +19,7 @@ func NewExpenseDb(conn *pgx.Conn) *ExpenseDB {
 	}
 }
 
-func (e *ExpenseDB) New(userID int64, category string, amount uint64, date time.Time) {
+func (e *ExpenseDB) New(userID int64, category string, amount uint64, date time.Time) error {
 	_, err := e.conn.Exec(
 		context.Background(),
 		"insert into expenses (user_id, category, amount, created_at) VALUES ($1, $2, $3, $4)",
@@ -28,9 +28,7 @@ func (e *ExpenseDB) New(userID int64, category string, amount uint64, date time.
 		amount,
 		date,
 	)
-	if err != nil {
-		log.Println("cannot save rate:", err)
-	}
+	return err
 }
 
 func (e *ExpenseDB) GetExpenses(userID int64, period time.Time) []*entity.Expense {
@@ -41,7 +39,8 @@ func (e *ExpenseDB) GetExpenses(userID int64, period time.Time) []*entity.Expens
 		period,
 	)
 	if err != nil {
-		log.Fatal("QueryRow failed:", err)
+		log.Println("cannot exec get expenses query:", err)
+		return nil
 	}
 	defer rows.Close()
 
@@ -51,7 +50,8 @@ func (e *ExpenseDB) GetExpenses(userID int64, period time.Time) []*entity.Expens
 		var amount uint64
 		var createdAt time.Time
 		if err := rows.Scan(&category, &amount, &createdAt); err != nil {
-			log.Fatal("Row scan failed:", err)
+			log.Println("cannot scan expense row:", err)
+			break
 		}
 
 		expenses = append(expenses, &entity.Expense{

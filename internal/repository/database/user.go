@@ -2,11 +2,11 @@ package database
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/pkg/errors"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages/entity"
 )
 
@@ -20,14 +20,14 @@ func NewUserDb(conn *pgx.Conn) *UserDB {
 	}
 }
 
-func (u *UserDB) GetUser(userID int64) *entity.User {
+func (u *UserDB) GetUser(userID int64) (*entity.User, error) {
 	rows, err := u.conn.Query(
 		context.Background(),
 		"select currency_code, monthly_limit, updated_at from users where user_id=$1",
 		userID,
 	)
 	if err != nil {
-		log.Fatal("QueryRow failed:", err)
+		return nil, errors.Wrap(err, "cannot exec get user query")
 	}
 	defer rows.Close()
 
@@ -37,7 +37,7 @@ func (u *UserDB) GetUser(userID int64) *entity.User {
 		var monthlyLimit *uint64
 		var updatedAt time.Time
 		if err := rows.Scan(&currencyCode, &monthlyLimit, &updatedAt); err != nil {
-			log.Fatal("Row scan failed:", err)
+			return nil, errors.Wrap(err, "cannot scan row")
 		}
 
 		user = &entity.User{
@@ -47,11 +47,11 @@ func (u *UserDB) GetUser(userID int64) *entity.User {
 			UpdatedAt:    updatedAt.Unix(),
 		}
 	}
-	return user
+	return user, nil
 }
 
 func (u *UserDB) CreateUser(userID int64, currency *string, monthlyLimit *uint64) error {
-	s, err := u.conn.Exec(
+	_, err := u.conn.Exec(
 		context.Background(),
 		"insert into users (user_id, currency_code, monthly_limit, updated_at) VALUES ($1, $2, $3, $4)",
 		userID,
@@ -59,13 +59,14 @@ func (u *UserDB) CreateUser(userID int64, currency *string, monthlyLimit *uint64
 		monthlyLimit,
 		time.Now(),
 	)
-	fmt.Printf("Res: %v\n", s)
 	return err
 }
 
 func (u *UserDB) SetCurrency(userID int64, currency string) error {
-	user := u.GetUser(userID)
-	var err error
+	user, err := u.GetUser(userID)
+	if err != nil {
+		return err
+	}
 	if user == nil {
 		err = u.CreateUser(userID, &currency, nil)
 	} else {
@@ -76,7 +77,10 @@ func (u *UserDB) SetCurrency(userID int64, currency string) error {
 }
 
 func (u *UserDB) GetCurrency(userID int64) *string {
-	user := u.GetUser(userID)
+	user, err := u.GetUser(userID)
+	if err != nil {
+		log.Println("cannot get user:", err)
+	}
 	if user != nil {
 		return user.CurrencyCode
 	}
@@ -84,8 +88,10 @@ func (u *UserDB) GetCurrency(userID int64) *string {
 }
 
 func (u *UserDB) SetLimit(userID int64, limit uint64) error {
-	user := u.GetUser(userID)
-	var err error
+	user, err := u.GetUser(userID)
+	if err != nil {
+		return err
+	}
 	if user == nil {
 		err = u.CreateUser(userID, nil, &limit)
 	} else {
@@ -96,7 +102,7 @@ func (u *UserDB) SetLimit(userID int64, limit uint64) error {
 }
 
 func (u *UserDB) GetLimit(userID int64) *uint64 {
-	user := u.GetUser(userID)
+	user, _ := u.GetUser(userID)
 	if user != nil {
 		return user.MonthlyLimit
 	}
@@ -104,7 +110,7 @@ func (u *UserDB) GetLimit(userID int64) *uint64 {
 }
 
 func (u *UserDB) DelLimit(userID int64) error {
-	user := u.GetUser(userID)
+	user, _ := u.GetUser(userID)
 	var err error
 	if user != nil {
 		_, err = u.conn.Exec(context.Background(), "update users set monthly_limit = $1 where user_id = $2", nil, userID)

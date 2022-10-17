@@ -21,4 +21,5 @@ const (
 	limitSaved            = "Лимит установлен"
 	canNotSaveLimit       = "Возникла ошибка при изменении лимита"
 	limitDeleted          = "Лимит сброшен"
+	canNotAddExpense      = "Произошла ошибка при добавлении расхода"
 )

@@ -26,7 +26,7 @@ func (r *RateDB) GetRate(code string) (rate float64, err error) {
 		code,
 	)
 	if err != nil {
-		log.Println("QueryRow failed:", err)
+		err = errors.Wrap(err, "cannot exec get rate query")
 		return
 	}
 	defer rows.Close()
@@ -38,6 +38,9 @@ func (r *RateDB) GetRate(code string) (rate float64, err error) {
 	}
 
 	err = rows.Scan(&rate)
+	if err != nil {
+		err = errors.Wrap(err, "cannot scan rate row")
+	}
 
 	return
 }

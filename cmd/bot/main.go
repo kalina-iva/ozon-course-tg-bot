@@ -21,17 +21,17 @@ func main() {
 		log.Fatal("config init failed:", err)
 	}
 
+	tgClient, err := tg.New(cfg)
+	if err != nil {
+		log.Fatal("tg client init failed:", err)
+	}
+
 	conn, err := pgx.Connect(context.Background(), cfg.DatabaseDSN())
 	if err != nil {
 		log.Fatal("cannot connect to database:", err)
 	}
 	defer conn.Close(context.Background())
 	// conn.Ping()
-
-	tgClient, err := tg.New(cfg)
-	if err != nil {
-		log.Fatal("tg client init failed:", err)
-	}
 
 	expenseRepo := database.NewExpenseDb(conn)
 	exchangeRateRepo := database.NewRateDb(conn)
