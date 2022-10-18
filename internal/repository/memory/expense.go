@@ -6,17 +6,17 @@ import (
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages/entity"
 )
 
-type Expense struct {
+type ExpenseM struct {
 	expenses map[int64][]*entity.Expense
 }
 
-func NewExpense() *Expense {
-	return &Expense{
+func NewExpenseM() *ExpenseM {
+	return &ExpenseM{
 		expenses: make(map[int64][]*entity.Expense),
 	}
 }
 
-func (e *Expense) New(userID int64, category string, amount uint64, date time.Time) error {
+func (e *ExpenseM) New(userID int64, category string, amount uint64, date time.Time) error {
 	e.expenses[userID] = append(e.expenses[userID], &entity.Expense{
 		Category:        category,
 		AmountInKopecks: amount,
@@ -25,14 +25,21 @@ func (e *Expense) New(userID int64, category string, amount uint64, date time.Ti
 	return nil
 }
 
-func (e *Expense) GetExpenses(userID int64, period time.Time) []*entity.Expense {
+func (e *ExpenseM) Report(userID int64, period time.Time) []*entity.Report {
+	reportMap := make(map[string]uint64)
 	expenses := e.expenses[userID]
 	periodUnix := period.Unix()
-	var filtered []*entity.Expense
 	for _, expense := range expenses {
 		if expense.Date >= periodUnix {
-			filtered = append(filtered, expense)
+			reportMap[expense.Category] += expense.AmountInKopecks
 		}
 	}
-	return filtered
+	report := make([]*entity.Report, 0, len(reportMap))
+	for category, amount := range reportMap {
+		report = append(report, &entity.Report{
+			Category:        category,
+			AmountInKopecks: amount,
+		})
+	}
+	return report
 }

@@ -31,10 +31,10 @@ func (e *ExpenseDB) New(userID int64, category string, amount uint64, date time.
 	return err
 }
 
-func (e *ExpenseDB) GetExpenses(userID int64, period time.Time) []*entity.Expense {
+func (e *ExpenseDB) Report(userID int64, period time.Time) []*entity.Report {
 	rows, err := e.conn.Query(
 		context.Background(),
-		"select category, amount, created_at from expenses where user_id = $1 and created_at >= $2",
+		"select category, sum(amount) as sum from expenses where user_id = $1 and created_at >= $2 group by category",
 		userID,
 		period,
 	)
@@ -44,21 +44,19 @@ func (e *ExpenseDB) GetExpenses(userID int64, period time.Time) []*entity.Expens
 	}
 	defer rows.Close()
 
-	var expenses []*entity.Expense
+	var report []*entity.Report
 	for rows.Next() {
 		var category string
-		var amount uint64
-		var createdAt time.Time
-		if err := rows.Scan(&category, &amount, &createdAt); err != nil {
+		var sum uint64
+		if err := rows.Scan(&category, &sum); err != nil {
 			log.Println("cannot scan expense row:", err)
 			break
 		}
 
-		expenses = append(expenses, &entity.Expense{
+		report = append(report, &entity.Report{
 			Category:        category,
-			AmountInKopecks: amount,
-			Date:            createdAt.Unix(),
+			AmountInKopecks: sum,
 		})
 	}
-	return expenses
+	return report
 }

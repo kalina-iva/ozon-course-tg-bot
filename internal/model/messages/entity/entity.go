@@ -12,3 +12,8 @@ type User struct {
 	MonthlyLimit *uint64
 	UpdatedAt    int64
 }
+
+type Report struct {
+	Category        string
+	AmountInKopecks uint64
+}

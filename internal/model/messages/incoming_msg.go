@@ -25,7 +25,7 @@ type exchangeRateRepository interface {
 
 type expenseRepository interface {
 	New(userID int64, category string, amount uint64, date time.Time) error
-	GetExpenses(userID int64, period time.Time) []*entity.Expense
+	Report(userID int64, period time.Time) []*entity.Report
 }
 
 type userRepository interface {
@@ -180,16 +180,11 @@ func (m *Model) reportHandler(userID int64, params []string) string {
 		return canNotGetRate
 	}
 
-	report := make(map[string]uint64)
-	for _, expense := range m.expenseRepo.GetExpenses(userID, period) {
-		report[expense.Category] += expense.AmountInKopecks
-	}
-
 	var sb strings.Builder
 	currencyShort := getCurrencyShortByCode(code)
-	for category, amount := range report {
-		amount := float64(amount) * rate
-		sb.WriteString(category)
+	for _, item := range m.expenseRepo.Report(userID, period) {
+		amount := float64(item.AmountInKopecks) * rate
+		sb.WriteString(item.Category)
 		sb.WriteString(fmt.Sprintf(": %.2f %v\n", amount/cntKopInRub, currencyShort))
 	}
 	return sb.String()
