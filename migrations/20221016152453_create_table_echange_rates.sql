@@ -10,6 +10,7 @@ create table if not exists exchange_rates
     created_at    timestamp      not null
 );
 
+-- b-tree дефолтное, потому что будет поиск по диапазону
 CREATE INDEX exchange_rates_currency_code_idx ON exchange_rates(currency_code);
 
 -- +goose StatementEnd

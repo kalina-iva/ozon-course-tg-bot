@@ -11,6 +11,7 @@ create table if not exists expenses
     created_at timestamp not null
 );
 
+-- b-tree дефолтное, потому что будет поиск по диапазону
 CREATE INDEX expenses_user_id_category_idx ON expenses(user_id, category);
 
 -- +goose StatementEnd
