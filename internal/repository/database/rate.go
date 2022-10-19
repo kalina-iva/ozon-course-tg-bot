@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/pkg/errors"
 )
 
 type RateDB struct {
@@ -20,28 +19,8 @@ func NewRateDb(conn *pgx.Conn) *RateDB {
 }
 
 func (r *RateDB) GetRate(code string) (rate float64, err error) {
-	rows, err := r.conn.Query(
-		context.Background(),
-		"select rate from exchange_rates where currency_code = $1 order by created_at desc limit 1",
-		code,
-	)
-	if err != nil {
-		err = errors.Wrap(err, "cannot exec get rate query")
-		return
-	}
-	defer rows.Close()
-
-	has := rows.Next()
-	if !has {
-		err = errors.New("exchange rate not found by currency code")
-		return
-	}
-
-	err = rows.Scan(&rate)
-	if err != nil {
-		err = errors.Wrap(err, "cannot scan rate row")
-	}
-
+	row := r.conn.QueryRow(context.Background(), "select rate from exchange_rates where currency_code = $1 order by created_at desc limit 1", code)
+	err = row.Scan(&rate)
 	return
 }
 

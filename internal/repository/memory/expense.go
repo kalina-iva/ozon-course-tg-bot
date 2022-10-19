@@ -43,3 +43,14 @@ func (e *ExpenseM) Report(userID int64, period time.Time) []*entity.Report {
 	}
 	return report
 }
+
+func (e *ExpenseM) GetAmountByPeriod(userID int64, period time.Time) (sum uint64, err error) {
+	expenses := e.expenses[userID]
+	periodUnix := period.Unix()
+	for _, expense := range expenses {
+		if expense.Date >= periodUnix {
+			sum += expense.AmountInKopecks
+		}
+	}
+	return
+}

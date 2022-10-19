@@ -60,3 +60,14 @@ func (e *ExpenseDB) Report(userID int64, period time.Time) []*entity.Report {
 	}
 	return report
 }
+
+func (e *ExpenseDB) GetAmountByPeriod(userID int64, period time.Time) (sum uint64, err error) {
+	row := e.conn.QueryRow(
+		context.Background(),
+		"select sum(amount) as sum from expenses where user_id = $1 and created_at >= $2 group by user_id",
+		userID,
+		period,
+	)
+	err = row.Scan(&sum)
+	return
+}

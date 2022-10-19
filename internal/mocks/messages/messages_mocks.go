@@ -73,6 +73,21 @@ func (m *MockexpenseRepository) EXPECT() *MockexpenseRepositoryMockRecorder {
 	return m.recorder
 }
 
+// GetAmountByPeriod mocks base method.
+func (m *MockexpenseRepository) GetAmountByPeriod(userID int64, period time.Time) (uint64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAmountByPeriod", userID, period)
+	ret0, _ := ret[0].(uint64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAmountByPeriod indicates an expected call of GetAmountByPeriod.
+func (mr *MockexpenseRepositoryMockRecorder) GetAmountByPeriod(userID, period interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAmountByPeriod", reflect.TypeOf((*MockexpenseRepository)(nil).GetAmountByPeriod), userID, period)
+}
+
 // New mocks base method.
 func (m *MockexpenseRepository) New(userID int64, category string, amount uint64, date time.Time) error {
 	m.ctrl.T.Helper()

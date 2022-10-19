@@ -26,6 +26,7 @@ type exchangeRateRepository interface {
 type expenseRepository interface {
 	New(userID int64, category string, amount uint64, date time.Time) error
 	Report(userID int64, period time.Time) []*entity.Report
+	GetAmountByPeriod(userID int64, period time.Time) (uint64, error)
 }
 
 type userRepository interface {
@@ -129,6 +130,14 @@ func (m *Model) newExpenseHandler(userID int64, params []string) string {
 		date = time.Now()
 	}
 
+	/*
+		_ = m.userRepo.GetLimit(userID)
+		_, err = m.expenseRepo.GetAmountByPeriod(userID, beginningOfMonth())
+	*/
+	if err != nil {
+		log.Println("cannot get sum for period:", err)
+		return canNotAddExpense
+	}
 	if err = m.expenseRepo.New(userID, category, amount, date); err != nil {
 		log.Println("cannot create expense:", err)
 		return canNotAddExpense
@@ -136,6 +145,14 @@ func (m *Model) newExpenseHandler(userID int64, params []string) string {
 
 	return expenseAdded
 }
+
+/*
+func beginningOfMonth() time.Time {
+	now := time.Now()
+	y, m, _ := now.Date()
+	return time.Date(y, m, 1, 0, 0, 0, 0, now.Location())
+}
+*/
 
 func (m *Model) parseAmount(userID int64, amountStr string) (uint64, error) {
 	const bitSize = 64
