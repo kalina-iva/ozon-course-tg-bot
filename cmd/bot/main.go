@@ -36,6 +36,7 @@ func main() {
 	expenseRepo := database.NewExpenseDb(conn)
 	exchangeRateRepo := database.NewRateDb(conn)
 	userRepo := database.NewUserDb(conn)
+	txManager := database.NewTxManager(conn)
 
 	exchangeRateService := exchangeRate.New(
 		exchangeRateRepo,
@@ -45,7 +46,8 @@ func main() {
 	)
 	exchangeRateService.Run()
 
-	msgModel := messages.New(tgClient, expenseRepo, exchangeRateRepo, userRepo)
+	ctx := context.Background()
+	msgModel := messages.New(ctx, tgClient, expenseRepo, exchangeRateRepo, userRepo, txManager)
 	go tgClient.ListenUpdates(msgModel)
 
 	done := make(chan os.Signal, 1)

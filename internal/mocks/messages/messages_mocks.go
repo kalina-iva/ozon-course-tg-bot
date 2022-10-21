@@ -5,6 +5,7 @@
 package mock_messages
 
 import (
+	context "context"
 	reflect "reflect"
 	time "time"
 
@@ -74,46 +75,47 @@ func (m *MockexpenseRepository) EXPECT() *MockexpenseRepositoryMockRecorder {
 }
 
 // GetAmountByPeriod mocks base method.
-func (m *MockexpenseRepository) GetAmountByPeriod(userID int64, period time.Time) (uint64, error) {
+func (m *MockexpenseRepository) GetAmountByPeriod(ctx context.Context, userID int64, period time.Time) (uint64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAmountByPeriod", userID, period)
+	ret := m.ctrl.Call(m, "GetAmountByPeriod", ctx, userID, period)
 	ret0, _ := ret[0].(uint64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetAmountByPeriod indicates an expected call of GetAmountByPeriod.
-func (mr *MockexpenseRepositoryMockRecorder) GetAmountByPeriod(userID, period interface{}) *gomock.Call {
+func (mr *MockexpenseRepositoryMockRecorder) GetAmountByPeriod(ctx, userID, period interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAmountByPeriod", reflect.TypeOf((*MockexpenseRepository)(nil).GetAmountByPeriod), userID, period)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAmountByPeriod", reflect.TypeOf((*MockexpenseRepository)(nil).GetAmountByPeriod), ctx, userID, period)
 }
 
 // New mocks base method.
-func (m *MockexpenseRepository) New(userID int64, category string, amount uint64, date time.Time) error {
+func (m *MockexpenseRepository) New(ctx context.Context, userID int64, category string, amount uint64, date time.Time) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "New", userID, category, amount, date)
+	ret := m.ctrl.Call(m, "New", ctx, userID, category, amount, date)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // New indicates an expected call of New.
-func (mr *MockexpenseRepositoryMockRecorder) New(userID, category, amount, date interface{}) *gomock.Call {
+func (mr *MockexpenseRepositoryMockRecorder) New(ctx, userID, category, amount, date interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "New", reflect.TypeOf((*MockexpenseRepository)(nil).New), userID, category, amount, date)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "New", reflect.TypeOf((*MockexpenseRepository)(nil).New), ctx, userID, category, amount, date)
 }
 
 // Report mocks base method.
-func (m *MockexpenseRepository) Report(userID int64, period time.Time) []*entity.Report {
+func (m *MockexpenseRepository) Report(ctx context.Context, userID int64, period time.Time) ([]*entity.Report, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Report", userID, period)
+	ret := m.ctrl.Call(m, "Report", ctx, userID, period)
 	ret0, _ := ret[0].([]*entity.Report)
-	return ret0
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // Report indicates an expected call of Report.
-func (mr *MockexpenseRepositoryMockRecorder) Report(userID, period interface{}) *gomock.Call {
+func (mr *MockexpenseRepositoryMockRecorder) Report(ctx, userID, period interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Report", reflect.TypeOf((*MockexpenseRepository)(nil).Report), userID, period)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Report", reflect.TypeOf((*MockexpenseRepository)(nil).Report), ctx, userID, period)
 }
 
 // MockuserRepository is a mock of userRepository interface.
@@ -207,6 +209,43 @@ func (m *MockuserRepository) SetLimit(userID int64, limit uint64) error {
 func (mr *MockuserRepositoryMockRecorder) SetLimit(userID, limit interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLimit", reflect.TypeOf((*MockuserRepository)(nil).SetLimit), userID, limit)
+}
+
+// MocktxManager is a mock of txManager interface.
+type MocktxManager struct {
+	ctrl     *gomock.Controller
+	recorder *MocktxManagerMockRecorder
+}
+
+// MocktxManagerMockRecorder is the mock recorder for MocktxManager.
+type MocktxManagerMockRecorder struct {
+	mock *MocktxManager
+}
+
+// NewMocktxManager creates a new mock instance.
+func NewMocktxManager(ctrl *gomock.Controller) *MocktxManager {
+	mock := &MocktxManager{ctrl: ctrl}
+	mock.recorder = &MocktxManagerMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MocktxManager) EXPECT() *MocktxManagerMockRecorder {
+	return m.recorder
+}
+
+// WithinTransaction mocks base method.
+func (m *MocktxManager) WithinTransaction(arg0 context.Context, arg1 func(context.Context) error) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WithinTransaction", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WithinTransaction indicates an expected call of WithinTransaction.
+func (mr *MocktxManagerMockRecorder) WithinTransaction(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WithinTransaction", reflect.TypeOf((*MocktxManager)(nil).WithinTransaction), arg0, arg1)
 }
 
 // MockmessageSender is a mock of messageSender interface.

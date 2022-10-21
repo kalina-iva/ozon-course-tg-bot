@@ -1,6 +1,7 @@
 package messages
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"math"
@@ -24,9 +25,9 @@ type exchangeRateRepository interface {
 }
 
 type expenseRepository interface {
-	New(userID int64, category string, amount uint64, date time.Time) error
-	Report(userID int64, period time.Time) []*entity.Report
-	GetAmountByPeriod(userID int64, period time.Time) (uint64, error)
+	New(ctx context.Context, userID int64, category string, amount uint64, date time.Time) error
+	Report(ctx context.Context, userID int64, period time.Time) ([]*entity.Report, error)
+	GetAmountByPeriod(ctx context.Context, userID int64, period time.Time) (uint64, error)
 }
 
 type userRepository interface {
@@ -35,6 +36,10 @@ type userRepository interface {
 	SetLimit(userID int64, limit uint64) error
 	DelLimit(userID int64) error
 	GetLimit(userID int64) *uint64
+}
+
+type txManager interface {
+	WithinTransaction(context.Context, func(ctx context.Context) error) error
 }
 
 type messageSender interface {
@@ -46,19 +51,25 @@ type Model struct {
 	expenseRepo      expenseRepository
 	exchangeRateRepo exchangeRateRepository
 	userRepo         userRepository
+	txManager        txManager
+	ctx              context.Context
 }
 
 func New(
+	ctx context.Context,
 	tgClient messageSender,
 	expenseRepo expenseRepository,
 	exchangeRateRepo exchangeRateRepository,
 	userRepo userRepository,
+	txManager txManager,
 ) *Model {
 	return &Model{
+		ctx:              ctx,
 		tgClient:         tgClient,
 		expenseRepo:      expenseRepo,
 		exchangeRateRepo: exchangeRateRepo,
 		userRepo:         userRepo,
+		txManager:        txManager,
 	}
 }
 
@@ -130,29 +141,40 @@ func (m *Model) newExpenseHandler(userID int64, params []string) string {
 		date = time.Now()
 	}
 
-	/*
-		_ = m.userRepo.GetLimit(userID)
-		_, err = m.expenseRepo.GetAmountByPeriod(userID, beginningOfMonth())
-	*/
+	err = m.txManager.WithinTransaction(m.ctx, func(ctx context.Context) error {
+		limit := m.userRepo.GetLimit(userID)
+		if limit != nil {
+			currentSum, err := m.expenseRepo.GetAmountByPeriod(ctx, userID, beginningOfMonth())
+			if err != nil {
+				return err
+			}
+			if currentSum > *limit {
+				return errLimitExceeded
+			}
+		}
+		if err = m.expenseRepo.New(m.ctx, userID, category, amount, date); err != nil {
+			return err
+		}
+
+		return nil
+	})
+
 	if err != nil {
+		if errors.As(err, &errLimitExceeded) {
+			return limitExceeded
+		}
 		log.Println("cannot get sum for period:", err)
-		return canNotAddExpense
-	}
-	if err = m.expenseRepo.New(userID, category, amount, date); err != nil {
-		log.Println("cannot create expense:", err)
 		return canNotAddExpense
 	}
 
 	return expenseAdded
 }
 
-/*
 func beginningOfMonth() time.Time {
 	now := time.Now()
 	y, m, _ := now.Date()
 	return time.Date(y, m, 1, 0, 0, 0, 0, now.Location())
 }
-*/
 
 func (m *Model) parseAmount(userID int64, amountStr string) (uint64, error) {
 	const bitSize = 64
@@ -199,7 +221,13 @@ func (m *Model) reportHandler(userID int64, params []string) string {
 
 	var sb strings.Builder
 	currencyShort := getCurrencyShortByCode(code)
-	for _, item := range m.expenseRepo.Report(userID, period) {
+	report, err := m.expenseRepo.Report(m.ctx, userID, period)
+	if err != nil {
+		log.Println("cannot get report:", err)
+		return canNotCreateReport
+	}
+
+	for _, item := range report {
 		amount := float64(item.AmountInKopecks) * rate
 		sb.WriteString(item.Category)
 		sb.WriteString(fmt.Sprintf(": %.2f %v\n", amount/cntKopInRub, currencyShort))
