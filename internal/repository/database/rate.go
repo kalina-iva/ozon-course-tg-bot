@@ -2,7 +2,6 @@ package database
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -18,21 +17,15 @@ func NewRateDb(conn *pgx.Conn) *RateDB {
 	}
 }
 
-func (r *RateDB) GetRate(code string) (rate float64, err error) {
-	row := r.conn.QueryRow(context.Background(), "select rate from exchange_rates where currency_code = $1 order by created_at desc limit 1", code)
-	err = row.Scan(&rate)
-	return
+func (r *RateDB) GetRate(ctx context.Context, code string) (float64, error) {
+	row := r.conn.QueryRow(ctx, "select rate from exchange_rates where currency_code = $1 order by created_at desc limit 1", code)
+	var rate float64
+	err := row.Scan(&rate)
+	return rate, err
 }
 
-func (r *RateDB) SaveRate(code string, rate float64) {
-	_, err := r.conn.Exec(
-		context.Background(),
-		"insert into exchange_rates (currency_code, rate, created_at) VALUES ($1, $2, $3)",
-		code,
-		rate,
-		time.Now(),
-	)
-	if err != nil {
-		log.Println("cannot save rate:", err)
-	}
+func (r *RateDB) SaveRate(ctx context.Context, code string, rate float64) error {
+	const sql = "insert into exchange_rates (currency_code, rate, created_at) VALUES ($1, $2, $3)"
+	_, err := r.conn.Exec(ctx, sql, code, rate, time.Now())
+	return err
 }

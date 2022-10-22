@@ -16,6 +16,8 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
+
 	cfg, err := config.New()
 	if err != nil {
 		log.Fatal("config init failed:", err)
@@ -30,8 +32,7 @@ func main() {
 	if err != nil {
 		log.Fatal("cannot connect to database:", err)
 	}
-	defer conn.Close(context.Background())
-	// conn.Ping()
+	defer conn.Close(ctx)
 
 	expenseRepo := database.NewExpenseDb(conn)
 	exchangeRateRepo := database.NewRateDb(conn)
@@ -46,7 +47,6 @@ func main() {
 	)
 	exchangeRateService.Run()
 
-	ctx := context.Background()
 	msgModel := messages.New(ctx, tgClient, expenseRepo, exchangeRateRepo, userRepo, txManager)
 	go tgClient.ListenUpdates(msgModel)
 

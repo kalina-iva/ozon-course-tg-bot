@@ -2,11 +2,13 @@ package database
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/pkg/errors"
 )
+
+type transactionKey struct{}
 
 type TxManager struct {
 	conn *pgx.Conn
@@ -18,25 +20,21 @@ func NewTxManager(conn *pgx.Conn) *TxManager {
 	}
 }
 
-type transactionKey struct{}
-
 func (t *TxManager) WithinTransaction(ctx context.Context, tFunc func(ctx context.Context) error) error {
 	tx, err := t.conn.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("begin transaction: %w", err)
+		return errors.Wrap(err, "cannot begin transaction")
 	}
 
 	err = tFunc(injectTx(ctx, tx))
 	if err != nil {
-		// if error, rollback
 		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			log.Printf("rollback transaction: %v", errRollback)
+			log.Println("rollback transaction:", errRollback)
 		}
 		return err
 	}
-	// if no error, commit
 	if errCommit := tx.Commit(ctx); errCommit != nil {
-		log.Printf("commit transaction: %v", errCommit)
+		log.Println("commit transaction:", errCommit)
 	}
 	return nil
 }

@@ -83,8 +83,6 @@ func Test_OnNewExpenseCommand_incorrectDate(t *testing.T) {
 	txManager := mocks.NewMocktxManager(ctrl)
 	model := New(context.Background(), sender, expenseRepo, rateRepository, userRepo, txManager)
 
-	userRepo.EXPECT().GetCurrency(int64(123))
-	rateRepository.EXPECT().GetRate("RUB").Return(float64(1), nil)
 	sender.EXPECT().SendMessage("Некорректная дата", nil, int64(123))
 
 	err := model.IncomingMessage(Message{
@@ -95,7 +93,6 @@ func Test_OnNewExpenseCommand_incorrectDate(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-/*
 func Test_OnNewExpenseCommand_onOk(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
@@ -105,16 +102,9 @@ func Test_OnNewExpenseCommand_onOk(t *testing.T) {
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
 	ctx := context.Background()
-	model := New(sender, expenseRepo, rateRepository, userRepo, txManager, ctx)
+	model := New(ctx, sender, expenseRepo, rateRepository, userRepo, txManager)
 
-	userRepo.EXPECT().GetCurrency(int64(123))
-	rateRepository.EXPECT().GetRate("RUB").Return(float64(1), nil)
-
-	txManager.EXPECT().WithinTransaction(ctx, func(ctx context.Context) error {
-		//expectedTime, _ := time.Parse("01-02-2006", "02-10-2022")
-		//expenseRepo.EXPECT().New(ctx, int64(123), "category", uint64(7610), expectedTime)
-		return nil
-	})
+	txManager.EXPECT().WithinTransaction(ctx, gomock.Not(gomock.Nil())).Return(nil)
 	sender.EXPECT().SendMessage("Расход добавлен", nil, int64(123))
 
 	err := model.IncomingMessage(Message{
@@ -124,7 +114,28 @@ func Test_OnNewExpenseCommand_onOk(t *testing.T) {
 
 	assert.NoError(t, err)
 }
-*/
+
+func Test_OnNewExpenseCommand_onLimitExceeded(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	sender := mocks.NewMockmessageSender(ctrl)
+	expenseRepo := mocks.NewMockexpenseRepository(ctrl)
+	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
+	userRepo := mocks.NewMockuserRepository(ctrl)
+	txManager := mocks.NewMocktxManager(ctrl)
+	ctx := context.Background()
+	model := New(ctx, sender, expenseRepo, rateRepository, userRepo, txManager)
+
+	txManager.EXPECT().WithinTransaction(ctx, gomock.Not(gomock.Nil())).Return(errLimitExceeded)
+	sender.EXPECT().SendMessage("Превышен лимит", nil, int64(123))
+
+	err := model.IncomingMessage(Message{
+		Text:   "/newexpense category 76.10 02-10-2022",
+		UserID: 123,
+	})
+
+	assert.NoError(t, err)
+}
 
 func Test_OnReportCommand_withoutPeriod(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -194,10 +205,33 @@ func Test_OnCallbackSetCurrency_onOk(t *testing.T) {
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
-	model := New(context.Background(), sender, expenseRepo, rateRepository, userRepo, txManager)
+	ctx := context.Background()
+	model := New(ctx, sender, expenseRepo, rateRepository, userRepo, txManager)
 
-	userRepo.EXPECT().SetCurrency(int64(123), "USD")
+	txManager.EXPECT().WithinTransaction(ctx, gomock.Not(gomock.Nil())).Return(nil)
 	sender.EXPECT().SendMessage("Валюта установлена", nil, int64(123))
+
+	err := model.SetCurrency(CallbackQuery{
+		Data:   "USD",
+		UserID: 123,
+	})
+
+	assert.NoError(t, err)
+}
+
+func Test_OnCallbackSetCurrency_onUserNotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	sender := mocks.NewMockmessageSender(ctrl)
+	expenseRepo := mocks.NewMockexpenseRepository(ctrl)
+	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
+	userRepo := mocks.NewMockuserRepository(ctrl)
+	txManager := mocks.NewMocktxManager(ctrl)
+	ctx := context.Background()
+	model := New(ctx, sender, expenseRepo, rateRepository, userRepo, txManager)
+
+	txManager.EXPECT().WithinTransaction(ctx, gomock.Not(gomock.Nil())).Return(errUserNotFound)
+	sender.EXPECT().SendMessage("Такой пользователь не существует", nil, int64(123))
 
 	err := model.SetCurrency(CallbackQuery{
 		Data:   "USD",
@@ -215,11 +249,10 @@ func Test_OnSetLimit_onOk(t *testing.T) {
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
-	model := New(context.Background(), sender, expenseRepo, rateRepository, userRepo, txManager)
+	ctx := context.Background()
+	model := New(ctx, sender, expenseRepo, rateRepository, userRepo, txManager)
 
-	userRepo.EXPECT().GetCurrency(int64(123))
-	rateRepository.EXPECT().GetRate("RUB").Return(float64(1), nil)
-	userRepo.EXPECT().SetLimit(int64(123), uint64(7000))
+	txManager.EXPECT().WithinTransaction(ctx, gomock.Not(gomock.Nil())).Return(nil)
 	sender.EXPECT().SendMessage("Лимит установлен", nil, int64(123))
 
 	err := model.IncomingMessage(Message{
@@ -238,9 +271,10 @@ func Test_OnDelLimit_onOk(t *testing.T) {
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
-	model := New(context.Background(), sender, expenseRepo, rateRepository, userRepo, txManager)
+	ctx := context.Background()
+	model := New(ctx, sender, expenseRepo, rateRepository, userRepo, txManager)
 
-	userRepo.EXPECT().DelLimit(int64(123))
+	txManager.EXPECT().WithinTransaction(ctx, gomock.Not(gomock.Nil())).Return(nil)
 	sender.EXPECT().SendMessage("Лимит сброшен", nil, int64(123))
 
 	err := model.IncomingMessage(Message{

@@ -33,9 +33,9 @@ func (e *ExpenseDB) New(ctx context.Context, userID int64, category string, amou
 
 func (e *ExpenseDB) Report(ctx context.Context, userID int64, period time.Time) ([]*entity.Report, error) {
 	const sql = "select category, sum(amount) as sum from expenses where user_id = $1 and created_at >= $2 group by category"
-	tx := extractTx(ctx)
 	var rows pgx.Rows
 	var err error
+	tx := extractTx(ctx)
 	if tx == nil {
 		rows, err = e.conn.Query(ctx, sql, userID, period)
 	} else {
@@ -62,9 +62,9 @@ func (e *ExpenseDB) GetAmountByPeriod(ctx context.Context, userID int64, period 
 	tx := extractTx(ctx)
 	var row pgx.Row
 	if tx == nil {
-		row = e.conn.QueryRow(context.Background(), sql, userID, period)
+		row = e.conn.QueryRow(ctx, sql, userID, period)
 	} else {
-		row = tx.QueryRow(context.Background(), sql, userID, period)
+		row = tx.QueryRow(ctx, sql, userID, period)
 	}
 	var sum uint64
 	err := row.Scan(&sum)

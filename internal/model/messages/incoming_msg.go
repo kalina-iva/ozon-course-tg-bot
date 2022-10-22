@@ -21,7 +21,7 @@ const (
 var AvailableCurrencies = []string{"RUB", "USD", "EUR", "CNY"}
 
 type exchangeRateRepository interface {
-	GetRate(code string) (float64, error)
+	GetRate(ctx context.Context, code string) (float64, error)
 }
 
 type expenseRepository interface {
@@ -31,11 +31,10 @@ type expenseRepository interface {
 }
 
 type userRepository interface {
-	SetCurrency(userID int64, currency string) error
-	GetCurrency(userID int64) *string
-	SetLimit(userID int64, limit uint64) error
-	DelLimit(userID int64) error
-	GetLimit(userID int64) *uint64
+	GetUser(ctx context.Context, userID int64) (*entity.User, error)
+	SetCurrency(ctx context.Context, userID int64, currency string) error
+	SetLimit(ctx context.Context, userID int64, limit uint64) error
+	DelLimit(ctx context.Context, userID int64) error
 }
 
 type txManager interface {
@@ -111,11 +110,31 @@ func (m *Model) IncomingMessage(msg Message) (err error) {
 }
 
 func (m *Model) SetCurrency(msg CallbackQuery) error {
-	if err := m.userRepo.SetCurrency(msg.UserID, msg.Data); err != nil {
-		log.Println("cannot set currency:", err)
-		return m.tgClient.SendMessage(canNotSaveCurrency, nil, msg.UserID)
+	err := m.txManager.WithinTransaction(m.ctx, func(ctx context.Context) error {
+		_, err := m.userRepo.GetUser(ctx, msg.UserID)
+		if err != nil {
+			log.Println("cannot get user:", err)
+			return errUserNotFound
+		}
+		if err := m.userRepo.SetCurrency(ctx, msg.UserID, msg.Data); err != nil {
+			return err
+		}
+		return nil
+	})
+
+	var text string
+	if err != nil {
+		if errors.Is(err, errUserNotFound) {
+			text = userNotFound
+		} else {
+			log.Println("cannot set currency:", err)
+			text = canNotSaveCurrency
+		}
+	} else {
+		text = currencySaved
 	}
-	return m.tgClient.SendMessage(currencySaved, nil, msg.UserID)
+
+	return m.tgClient.SendMessage(text, nil, msg.UserID)
 }
 
 func (m *Model) newExpenseHandler(userID int64, params []string) string {
@@ -124,7 +143,8 @@ func (m *Model) newExpenseHandler(userID int64, params []string) string {
 		return needCategoryAndAmount
 	}
 	category := params[1]
-	amount, err := m.parseAmount(userID, params[2])
+
+	parsedAmount, err := m.parseAmount(params[2])
 	if err != nil {
 		log.Println("cannot parse amount:", err)
 		return invalidAmount
@@ -142,26 +162,36 @@ func (m *Model) newExpenseHandler(userID int64, params []string) string {
 	}
 
 	err = m.txManager.WithinTransaction(m.ctx, func(ctx context.Context) error {
-		limit := m.userRepo.GetLimit(userID)
-		if limit != nil {
-			currentSum, err := m.expenseRepo.GetAmountByPeriod(ctx, userID, beginningOfMonth())
-			if err != nil {
+		user, err := m.userRepo.GetUser(ctx, userID)
+		if err != nil {
+			log.Println("cannot get user:", err)
+			return errUserNotFound
+		}
+		if user.MonthlyLimit != nil {
+			var currentSum uint64
+			if currentSum, err = m.expenseRepo.GetAmountByPeriod(ctx, userID, beginningOfMonth()); err != nil {
 				return err
 			}
-			if currentSum > *limit {
+			if currentSum > *user.MonthlyLimit {
 				return errLimitExceeded
 			}
 		}
-		if err = m.expenseRepo.New(m.ctx, userID, category, amount, date); err != nil {
+		var amount uint64
+		if amount, err = m.convertAmountToRub(*user, parsedAmount); err != nil {
 			return err
 		}
-
+		if err = m.expenseRepo.New(ctx, userID, category, amount, date); err != nil {
+			return err
+		}
 		return nil
 	})
 
 	if err != nil {
-		if errors.As(err, &errLimitExceeded) {
+		if errors.Is(err, errLimitExceeded) {
 			return limitExceeded
+		}
+		if errors.Is(err, errUserNotFound) {
+			return userNotFound
 		}
 		log.Println("cannot get sum for period:", err)
 		return canNotAddExpense
@@ -176,7 +206,7 @@ func beginningOfMonth() time.Time {
 	return time.Date(y, m, 1, 0, 0, 0, 0, now.Location())
 }
 
-func (m *Model) parseAmount(userID int64, amountStr string) (uint64, error) {
+func (m *Model) parseAmount(amountStr string) (float64, error) {
 	const bitSize = 64
 	amount, err := strconv.ParseFloat(amountStr, bitSize)
 	if err != nil {
@@ -185,8 +215,12 @@ func (m *Model) parseAmount(userID int64, amountStr string) (uint64, error) {
 	if amount <= 0 {
 		return 0, errInvalidAmount
 	}
-	code := m.getCurrencyCode(userID)
-	rate, err := m.exchangeRateRepo.GetRate(code)
+	return amount, nil
+}
+
+func (m *Model) convertAmountToRub(user entity.User, amount float64) (uint64, error) {
+	code := m.getCurrencyCode(user)
+	rate, err := m.exchangeRateRepo.GetRate(m.ctx, code)
 	if err != nil {
 		return 0, errors.Wrap(err, "get exchange rate")
 	}
@@ -212,8 +246,13 @@ func (m *Model) reportHandler(userID int64, params []string) string {
 		return invalidPeriod
 	}
 
-	code := m.getCurrencyCode(userID)
-	rate, err := m.exchangeRateRepo.GetRate(code)
+	user, err := m.userRepo.GetUser(m.ctx, userID)
+	if err != nil {
+		log.Println("cannot get user:", err)
+		return userNotFound
+	}
+	code := m.getCurrencyCode(*user)
+	rate, err := m.exchangeRateRepo.GetRate(m.ctx, code)
 	if err != nil {
 		log.Println("cannot get rate from expenseRepo:", err)
 		return canNotGetRate
@@ -235,10 +274,9 @@ func (m *Model) reportHandler(userID int64, params []string) string {
 	return sb.String()
 }
 
-func (m *Model) getCurrencyCode(userID int64) string {
-	code := m.userRepo.GetCurrency(userID)
-	if code != nil {
-		return *code
+func (m *Model) getCurrencyCode(user entity.User) string {
+	if user.CurrencyCode != nil {
+		return *user.CurrencyCode
 	}
 	return DefaultCurrencyCode
 }
@@ -258,21 +296,53 @@ func getCurrencyShortByCode(code string) (short string) {
 }
 
 func (m *Model) limitHandler(userID int64, params []string) string {
-	amount, err := m.parseAmount(userID, params[1])
+	parsedAmount, err := m.parseAmount(params[1])
 	if err != nil {
 		log.Println("cannot parse amount:", err)
 		return invalidAmount
 	}
-	if err := m.userRepo.SetLimit(userID, amount); err != nil {
-		log.Println("cannot parse amount:", err)
+	err = m.txManager.WithinTransaction(m.ctx, func(ctx context.Context) error {
+		user, err := m.userRepo.GetUser(ctx, userID)
+		if err != nil {
+			log.Println("cannot get user:", err)
+			return errUserNotFound
+		}
+		var amount uint64
+		if amount, err = m.convertAmountToRub(*user, parsedAmount); err != nil {
+			return err
+		}
+		if err := m.userRepo.SetLimit(ctx, userID, amount); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		if errors.Is(err, errUserNotFound) {
+			return userNotFound
+		}
+		log.Println("cannot save limit:", err)
 		return canNotSaveLimit
 	}
 	return limitSaved
 }
 
 func (m *Model) delLimitHandler(userID int64) string {
-	if err := m.userRepo.DelLimit(userID); err != nil {
-		log.Println("cannot parse amount:", err)
+	err := m.txManager.WithinTransaction(m.ctx, func(ctx context.Context) error {
+		_, err := m.userRepo.GetUser(ctx, userID)
+		if err != nil {
+			log.Println("cannot get user:", err)
+			return errUserNotFound
+		}
+		if err := m.userRepo.DelLimit(ctx, userID); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		if errors.Is(err, errUserNotFound) {
+			return userNotFound
+		}
+		log.Println("cannot save limit:", err)
 		return canNotSaveLimit
 	}
 	return limitDeleted

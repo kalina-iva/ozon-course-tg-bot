@@ -37,18 +37,18 @@ func (m *MockexchangeRateRepository) EXPECT() *MockexchangeRateRepositoryMockRec
 }
 
 // GetRate mocks base method.
-func (m *MockexchangeRateRepository) GetRate(code string) (float64, error) {
+func (m *MockexchangeRateRepository) GetRate(ctx context.Context, code string) (float64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRate", code)
+	ret := m.ctrl.Call(m, "GetRate", ctx, code)
 	ret0, _ := ret[0].(float64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetRate indicates an expected call of GetRate.
-func (mr *MockexchangeRateRepositoryMockRecorder) GetRate(code interface{}) *gomock.Call {
+func (mr *MockexchangeRateRepositoryMockRecorder) GetRate(ctx, code interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRate", reflect.TypeOf((*MockexchangeRateRepository)(nil).GetRate), code)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRate", reflect.TypeOf((*MockexchangeRateRepository)(nil).GetRate), ctx, code)
 }
 
 // MockexpenseRepository is a mock of expenseRepository interface.
@@ -142,73 +142,60 @@ func (m *MockuserRepository) EXPECT() *MockuserRepositoryMockRecorder {
 }
 
 // DelLimit mocks base method.
-func (m *MockuserRepository) DelLimit(userID int64) error {
+func (m *MockuserRepository) DelLimit(ctx context.Context, userID int64) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DelLimit", userID)
+	ret := m.ctrl.Call(m, "DelLimit", ctx, userID)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DelLimit indicates an expected call of DelLimit.
-func (mr *MockuserRepositoryMockRecorder) DelLimit(userID interface{}) *gomock.Call {
+func (mr *MockuserRepositoryMockRecorder) DelLimit(ctx, userID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DelLimit", reflect.TypeOf((*MockuserRepository)(nil).DelLimit), userID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DelLimit", reflect.TypeOf((*MockuserRepository)(nil).DelLimit), ctx, userID)
 }
 
-// GetCurrency mocks base method.
-func (m *MockuserRepository) GetCurrency(userID int64) *string {
+// GetUser mocks base method.
+func (m *MockuserRepository) GetUser(ctx context.Context, userID int64) (*entity.User, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCurrency", userID)
-	ret0, _ := ret[0].(*string)
-	return ret0
+	ret := m.ctrl.Call(m, "GetUser", ctx, userID)
+	ret0, _ := ret[0].(*entity.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
-// GetCurrency indicates an expected call of GetCurrency.
-func (mr *MockuserRepositoryMockRecorder) GetCurrency(userID interface{}) *gomock.Call {
+// GetUser indicates an expected call of GetUser.
+func (mr *MockuserRepositoryMockRecorder) GetUser(ctx, userID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCurrency", reflect.TypeOf((*MockuserRepository)(nil).GetCurrency), userID)
-}
-
-// GetLimit mocks base method.
-func (m *MockuserRepository) GetLimit(userID int64) *uint64 {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetLimit", userID)
-	ret0, _ := ret[0].(*uint64)
-	return ret0
-}
-
-// GetLimit indicates an expected call of GetLimit.
-func (mr *MockuserRepositoryMockRecorder) GetLimit(userID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLimit", reflect.TypeOf((*MockuserRepository)(nil).GetLimit), userID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUser", reflect.TypeOf((*MockuserRepository)(nil).GetUser), ctx, userID)
 }
 
 // SetCurrency mocks base method.
-func (m *MockuserRepository) SetCurrency(userID int64, currency string) error {
+func (m *MockuserRepository) SetCurrency(ctx context.Context, userID int64, currency string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetCurrency", userID, currency)
+	ret := m.ctrl.Call(m, "SetCurrency", ctx, userID, currency)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetCurrency indicates an expected call of SetCurrency.
-func (mr *MockuserRepositoryMockRecorder) SetCurrency(userID, currency interface{}) *gomock.Call {
+func (mr *MockuserRepositoryMockRecorder) SetCurrency(ctx, userID, currency interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetCurrency", reflect.TypeOf((*MockuserRepository)(nil).SetCurrency), userID, currency)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetCurrency", reflect.TypeOf((*MockuserRepository)(nil).SetCurrency), ctx, userID, currency)
 }
 
 // SetLimit mocks base method.
-func (m *MockuserRepository) SetLimit(userID int64, limit uint64) error {
+func (m *MockuserRepository) SetLimit(ctx context.Context, userID int64, limit uint64) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetLimit", userID, limit)
+	ret := m.ctrl.Call(m, "SetLimit", ctx, userID, limit)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetLimit indicates an expected call of SetLimit.
-func (mr *MockuserRepositoryMockRecorder) SetLimit(userID, limit interface{}) *gomock.Call {
+func (mr *MockuserRepositoryMockRecorder) SetLimit(ctx, userID, limit interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLimit", reflect.TypeOf((*MockuserRepository)(nil).SetLimit), userID, limit)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLimit", reflect.TypeOf((*MockuserRepository)(nil).SetLimit), ctx, userID, limit)
 }
 
 // MocktxManager is a mock of txManager interface.
