@@ -46,7 +46,7 @@ func (e *ExpenseDB) Report(ctx context.Context, userID int64, period time.Time) 
 	}
 	defer rows.Close()
 
-	var reportData []*entity.Report
+	reportData := make([]*entity.Report, 0)
 	for rows.Next() {
 		var report entity.Report
 		if err = rows.Scan(&report.Category, &report.AmountInKopecks); err != nil {

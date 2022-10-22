@@ -8,7 +8,8 @@ create table if not exists expenses
     user_id    bigint    not null,
     category   text      not null,
     amount     integer   not null,
-    created_at timestamp not null
+    created_at timestamp not null,
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 -- b-tree дефолтное, потому что будет поиск по диапазону

@@ -3,7 +3,7 @@
 
 create table if not exists users
 (
-    user_id       bigint   not null
+    id       bigint   not null
         primary key,
     currency_code text,
     monthly_limit bigint,

@@ -186,18 +186,21 @@ func (m *Model) newExpenseHandler(userID int64, params []string) string {
 		return nil
 	})
 
-	if err != nil {
-		if errors.Is(err, errLimitExceeded) {
-			return limitExceeded
-		}
-		if errors.Is(err, errUserNotFound) {
-			return userNotFound
-		}
-		log.Println("cannot get sum for period:", err)
-		return canNotAddExpense
-	}
+	return getMsgTextForExpenseByErr(err)
+}
 
-	return expenseAdded
+func getMsgTextForExpenseByErr(err error) string {
+	if err == nil {
+		return expenseAdded
+	}
+	if errors.Is(err, errLimitExceeded) {
+		return limitExceeded
+	}
+	if errors.Is(err, errUserNotFound) {
+		return userNotFound
+	}
+	log.Println("cannot get sum for period:", err)
+	return canNotAddExpense
 }
 
 func beginningOfMonth() time.Time {
