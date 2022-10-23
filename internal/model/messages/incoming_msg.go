@@ -1,6 +1,7 @@
 package messages
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"math"
@@ -19,32 +20,55 @@ const (
 
 var AvailableCurrencies = []string{"RUB", "USD", "EUR", "CNY"}
 
-type currencyRepository interface {
-	GetRate(code string) (float64, error)
+type exchangeRateRepository interface {
+	GetRate(ctx context.Context, code string) (float64, error)
+}
+
+type expenseRepository interface {
+	New(ctx context.Context, userID int64, category string, amount uint64, date time.Time) error
+	Report(ctx context.Context, userID int64, period time.Time) ([]*entity.Report, error)
+	GetAmountByPeriod(ctx context.Context, userID int64, period time.Time) (uint64, error)
+}
+
+type userRepository interface {
+	GetUser(ctx context.Context, userID int64) (*entity.User, error)
+	SetCurrency(ctx context.Context, userID int64, currency string) error
+	SetLimit(ctx context.Context, userID int64, limit uint64) error
+	DelLimit(ctx context.Context, userID int64) error
+}
+
+type txManager interface {
+	WithinTransaction(context.Context, func(ctx context.Context) error) error
 }
 
 type messageSender interface {
 	SendMessage(text string, cases []string, userID int64) error
 }
 
-type repository interface {
-	NewExpense(userID int64, category string, amount uint64, date int64)
-	NewReport(userID int64, period int64) []*entity.Report
-	SetCurrency(userID int64, currency string)
-	GetCurrency(userID int64) string
-}
-
 type Model struct {
-	tgClient           messageSender
-	repo               repository
-	currencyRepository currencyRepository
+	tgClient         messageSender
+	expenseRepo      expenseRepository
+	exchangeRateRepo exchangeRateRepository
+	userRepo         userRepository
+	txManager        txManager
+	ctx              context.Context
 }
 
-func New(tgClient messageSender, repo repository, currencyRepo currencyRepository) *Model {
+func New(
+	ctx context.Context,
+	tgClient messageSender,
+	expenseRepo expenseRepository,
+	exchangeRateRepo exchangeRateRepository,
+	userRepo userRepository,
+	txManager txManager,
+) *Model {
 	return &Model{
-		tgClient:           tgClient,
-		repo:               repo,
-		currencyRepository: currencyRepo,
+		ctx:              ctx,
+		tgClient:         tgClient,
+		expenseRepo:      expenseRepo,
+		exchangeRateRepo: exchangeRateRepo,
+		userRepo:         userRepo,
+		txManager:        txManager,
 	}
 }
 
@@ -75,15 +99,42 @@ func (m *Model) IncomingMessage(msg Message) (err error) {
 	case "/setcurrency":
 		text = chooseCurrency
 		cases = AvailableCurrencies
+	case "/setlimit":
+		text = m.limitHandler(msg.UserID, params)
+	case "/dellimit":
+		text = m.delLimitHandler(msg.UserID)
 	default:
 		text = unknownCommand
 	}
 	return m.tgClient.SendMessage(text, cases, msg.UserID)
 }
 
-func (m *Model) SetCurrency(msg CallbackQuery) (err error) {
-	m.repo.SetCurrency(msg.UserID, msg.Data)
-	return m.tgClient.SendMessage(currencySaved, nil, msg.UserID)
+func (m *Model) SetCurrency(msg CallbackQuery) error {
+	err := m.txManager.WithinTransaction(m.ctx, func(ctx context.Context) error {
+		_, err := m.userRepo.GetUser(ctx, msg.UserID)
+		if err != nil {
+			log.Println("cannot get user:", err)
+			return errUserNotFound
+		}
+		if err := m.userRepo.SetCurrency(ctx, msg.UserID, msg.Data); err != nil {
+			return err
+		}
+		return nil
+	})
+
+	var text string
+	if err != nil {
+		if errors.Is(err, errUserNotFound) {
+			text = userNotFound
+		} else {
+			log.Println("cannot set currency:", err)
+			text = canNotSaveCurrency
+		}
+	} else {
+		text = currencySaved
+	}
+
+	return m.tgClient.SendMessage(text, nil, msg.UserID)
 }
 
 func (m *Model) newExpenseHandler(userID int64, params []string) string {
@@ -92,30 +143,73 @@ func (m *Model) newExpenseHandler(userID int64, params []string) string {
 		return needCategoryAndAmount
 	}
 	category := params[1]
-	amount, err := m.parseAmount(userID, params[2])
+
+	parsedAmount, err := m.parseAmount(params[2])
 	if err != nil {
-		log.Println("error parse amount:", err)
+		log.Println("cannot parse amount:", err)
 		return invalidAmount
 	}
 
-	var date int64
+	var date time.Time
 	if len(params) == cntRequiredParams+1 {
-		t, err := time.Parse("01-02-2006", params[3])
+		date, err = time.Parse("01-02-2006", params[3])
 		if err != nil {
-			log.Println("error parse date:", err)
+			log.Println("cannot parse date:", err)
 			return invalidDate
 		}
-		date = t.Unix()
 	} else {
-		date = time.Now().Unix()
+		date = time.Now()
 	}
 
-	m.repo.NewExpense(userID, category, amount, date)
+	err = m.txManager.WithinTransaction(m.ctx, func(ctx context.Context) error {
+		user, err := m.userRepo.GetUser(ctx, userID)
+		if err != nil {
+			log.Println("cannot get user:", err)
+			return errUserNotFound
+		}
+		if user.MonthlyLimit != nil {
+			var currentSum uint64
+			if currentSum, err = m.expenseRepo.GetAmountByPeriod(ctx, userID, beginningOfMonth()); err != nil {
+				return err
+			}
+			if currentSum > *user.MonthlyLimit {
+				return errLimitExceeded
+			}
+		}
+		var amount uint64
+		if amount, err = m.convertAmountToRub(*user, parsedAmount); err != nil {
+			return err
+		}
+		if err = m.expenseRepo.New(ctx, userID, category, amount, date); err != nil {
+			return err
+		}
+		return nil
+	})
 
-	return expenseAdded
+	return getMsgTextForExpenseByErr(err)
 }
 
-func (m *Model) parseAmount(userID int64, amountStr string) (uint64, error) {
+func getMsgTextForExpenseByErr(err error) string {
+	if err == nil {
+		return expenseAdded
+	}
+	if errors.Is(err, errLimitExceeded) {
+		return limitExceeded
+	}
+	if errors.Is(err, errUserNotFound) {
+		return userNotFound
+	}
+	log.Println("cannot get sum for period:", err)
+	return canNotAddExpense
+}
+
+func beginningOfMonth() time.Time {
+	now := time.Now()
+	y, m, _ := now.Date()
+	return time.Date(y, m, 1, 0, 0, 0, 0, now.Location())
+}
+
+func (m *Model) parseAmount(amountStr string) (float64, error) {
 	const bitSize = 64
 	amount, err := strconv.ParseFloat(amountStr, bitSize)
 	if err != nil {
@@ -124,8 +218,12 @@ func (m *Model) parseAmount(userID int64, amountStr string) (uint64, error) {
 	if amount <= 0 {
 		return 0, errInvalidAmount
 	}
-	code := m.getCurrencyCode(userID)
-	rate, err := m.currencyRepository.GetRate(code)
+	return amount, nil
+}
+
+func (m *Model) convertAmountToRub(user entity.User, amount float64) (uint64, error) {
+	code := m.getCurrencyCode(user)
+	rate, err := m.exchangeRateRepo.GetRate(m.ctx, code)
 	if err != nil {
 		return 0, errors.Wrap(err, "get exchange rate")
 	}
@@ -138,29 +236,39 @@ func (m *Model) reportHandler(userID int64, params []string) string {
 	if len(params) < cntRequiredParams {
 		return needPeriod
 	}
-	var period int64
+	var period time.Time
 	now := time.Now()
 	switch params[1] {
 	case "y":
-		period = now.AddDate(-1, 0, 0).Unix()
+		period = now.AddDate(-1, 0, 0)
 	case "m":
-		period = now.AddDate(0, -1, 0).Unix()
+		period = now.AddDate(0, -1, 0)
 	case "w":
-		period = now.AddDate(0, 0, -7).Unix()
+		period = now.AddDate(0, 0, -7)
 	default:
 		return invalidPeriod
 	}
 
-	code := m.getCurrencyCode(userID)
-	rate, err := m.currencyRepository.GetRate(code)
+	user, err := m.userRepo.GetUser(m.ctx, userID)
 	if err != nil {
-		log.Println("cannot get rate from repo:", err)
+		log.Println("cannot get user:", err)
+		return userNotFound
+	}
+	code := m.getCurrencyCode(*user)
+	rate, err := m.exchangeRateRepo.GetRate(m.ctx, code)
+	if err != nil {
+		log.Println("cannot get rate from expenseRepo:", err)
 		return canNotGetRate
 	}
 
-	currencyShort := getCurrencyShortByCode(code)
-	report := m.repo.NewReport(userID, period)
 	var sb strings.Builder
+	currencyShort := getCurrencyShortByCode(code)
+	report, err := m.expenseRepo.Report(m.ctx, userID, period)
+	if err != nil {
+		log.Println("cannot get report:", err)
+		return canNotCreateReport
+	}
+
 	for _, item := range report {
 		amount := float64(item.AmountInKopecks) * rate
 		sb.WriteString(item.Category)
@@ -169,12 +277,11 @@ func (m *Model) reportHandler(userID int64, params []string) string {
 	return sb.String()
 }
 
-func (m *Model) getCurrencyCode(userID int64) string {
-	code := m.repo.GetCurrency(userID)
-	if len(code) == 0 {
-		code = DefaultCurrencyCode
+func (m *Model) getCurrencyCode(user entity.User) string {
+	if user.CurrencyCode != nil {
+		return *user.CurrencyCode
 	}
-	return code
+	return DefaultCurrencyCode
 }
 
 func getCurrencyShortByCode(code string) (short string) {
@@ -189,4 +296,57 @@ func getCurrencyShortByCode(code string) (short string) {
 		short = "元"
 	}
 	return
+}
+
+func (m *Model) limitHandler(userID int64, params []string) string {
+	parsedAmount, err := m.parseAmount(params[1])
+	if err != nil {
+		log.Println("cannot parse amount:", err)
+		return invalidAmount
+	}
+	err = m.txManager.WithinTransaction(m.ctx, func(ctx context.Context) error {
+		user, err := m.userRepo.GetUser(ctx, userID)
+		if err != nil {
+			log.Println("cannot get user:", err)
+			return errUserNotFound
+		}
+		var amount uint64
+		if amount, err = m.convertAmountToRub(*user, parsedAmount); err != nil {
+			return err
+		}
+		if err := m.userRepo.SetLimit(ctx, userID, amount); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		if errors.Is(err, errUserNotFound) {
+			return userNotFound
+		}
+		log.Println("cannot save limit:", err)
+		return canNotSaveLimit
+	}
+	return limitSaved
+}
+
+func (m *Model) delLimitHandler(userID int64) string {
+	err := m.txManager.WithinTransaction(m.ctx, func(ctx context.Context) error {
+		_, err := m.userRepo.GetUser(ctx, userID)
+		if err != nil {
+			log.Println("cannot get user:", err)
+			return errUserNotFound
+		}
+		if err := m.userRepo.DelLimit(ctx, userID); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		if errors.Is(err, errUserNotFound) {
+			return userNotFound
+		}
+		log.Println("cannot save limit:", err)
+		return canNotSaveLimit
+	}
+	return limitDeleted
 }

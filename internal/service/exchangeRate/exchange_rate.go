@@ -17,7 +17,7 @@ import (
 const timeoutInMin = 10
 
 type currencyRepository interface {
-	SaveRate(code string, rate float64)
+	SaveRate(ctx context.Context, code string, rate float64) error
 }
 
 type Service struct {
@@ -69,7 +69,9 @@ func (s *Service) Run() {
 		for result := range chanForResp {
 			for code, rate := range result.Rates {
 				log.Printf("%s %.2f", code, rate)
-				s.currencyRepository.SaveRate(code, rate)
+				if err := s.currencyRepository.SaveRate(ctx, code, rate); err != nil {
+					log.Println("cannot save rate:", err)
+				}
 			}
 		}
 		s.wg.Done()

@@ -17,4 +17,12 @@ const (
 	chooseCurrency        = "Выберите валюту"
 	currencySaved         = "Валюта установлена"
 	canNotGetRate         = "Не могу получить курс валют"
+	canNotSaveCurrency    = "Произошла ошибка при установлении валюты"
+	limitSaved            = "Лимит установлен"
+	canNotSaveLimit       = "Возникла ошибка при изменении лимита"
+	limitDeleted          = "Лимит сброшен"
+	canNotAddExpense      = "Произошла ошибка при добавлении расхода"
+	canNotCreateReport    = "Произошла ошибка при формировании отчета"
+	limitExceeded         = "Превышен лимит"
+	userNotFound          = "Такой пользователь не существует"
 )
