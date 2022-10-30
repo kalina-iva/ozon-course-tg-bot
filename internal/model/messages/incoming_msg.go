@@ -83,7 +83,7 @@ type CallbackQuery struct {
 	UserID int64
 }
 
-func (m *Model) IncomingMessage(msg Message) (err error) {
+func (m *Model) IncomingMessage(msg Message) (string, error) {
 	var text string
 	var cases []string
 
@@ -108,7 +108,7 @@ func (m *Model) IncomingMessage(msg Message) (err error) {
 		logger.Info("unknown command", zap.String("command", params[0]))
 		text = unknownCommand
 	}
-	return m.tgClient.SendMessage(text, cases, msg.UserID)
+	return params[0], m.tgClient.SendMessage(text, cases, msg.UserID)
 }
 
 func (m *Model) SetCurrency(msg CallbackQuery) error {

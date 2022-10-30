@@ -25,7 +25,7 @@ func Test_OnStartCommand_ShouldAnswerWithIntroMessage(t *testing.T) {
 /report {y|m|w} - получение отчета за последний год/месяц/неделю
 `, nil, int64(123))
 
-	err := model.IncomingMessage(Message{
+	_, err := model.IncomingMessage(Message{
 		Text:   "/start",
 		UserID: 123,
 	})
@@ -45,7 +45,7 @@ func Test_OnUnknownCommand_ShouldAnswerWithHelpMessage(t *testing.T) {
 
 	sender.EXPECT().SendMessage("Неизвестная команда", nil, int64(123))
 
-	err := model.IncomingMessage(Message{
+	_, err := model.IncomingMessage(Message{
 		Text:   "some text",
 		UserID: 123,
 	})
@@ -65,7 +65,7 @@ func Test_OnNewExpenseCommand_WrongAmount(t *testing.T) {
 
 	sender.EXPECT().SendMessage("Некорректная сумма расхода", nil, int64(123))
 
-	err := model.IncomingMessage(Message{
+	_, err := model.IncomingMessage(Message{
 		Text:   "/newexpense category 0 02-10-2022",
 		UserID: 123,
 	})
@@ -85,7 +85,7 @@ func Test_OnNewExpenseCommand_incorrectDate(t *testing.T) {
 
 	sender.EXPECT().SendMessage("Некорректная дата", nil, int64(123))
 
-	err := model.IncomingMessage(Message{
+	_, err := model.IncomingMessage(Message{
 		Text:   "/newexpense category 76.10 29-02-2022",
 		UserID: 123,
 	})
@@ -107,7 +107,7 @@ func Test_OnNewExpenseCommand_onOk(t *testing.T) {
 	txManager.EXPECT().WithinTransaction(ctx, gomock.Not(gomock.Nil())).Return(nil)
 	sender.EXPECT().SendMessage("Расход добавлен", nil, int64(123))
 
-	err := model.IncomingMessage(Message{
+	_, err := model.IncomingMessage(Message{
 		Text:   "/newexpense category 76.10 02-10-2022",
 		UserID: 123,
 	})
@@ -129,7 +129,7 @@ func Test_OnNewExpenseCommand_onLimitExceeded(t *testing.T) {
 	txManager.EXPECT().WithinTransaction(ctx, gomock.Not(gomock.Nil())).Return(errLimitExceeded)
 	sender.EXPECT().SendMessage("Превышен лимит", nil, int64(123))
 
-	err := model.IncomingMessage(Message{
+	_, err := model.IncomingMessage(Message{
 		Text:   "/newexpense category 76.10 02-10-2022",
 		UserID: 123,
 	})
@@ -149,7 +149,7 @@ func Test_OnReportCommand_withoutPeriod(t *testing.T) {
 
 	sender.EXPECT().SendMessage("Необходимо указать период", nil, int64(123))
 
-	err := model.IncomingMessage(Message{
+	_, err := model.IncomingMessage(Message{
 		Text:   "/report",
 		UserID: 123,
 	})
@@ -169,7 +169,7 @@ func Test_OnReportCommand_wrongPeriod(t *testing.T) {
 
 	sender.EXPECT().SendMessage("Некорректный период", nil, int64(123))
 
-	err := model.IncomingMessage(Message{
+	_, err := model.IncomingMessage(Message{
 		Text:   "/report a",
 		UserID: 123,
 	})
@@ -189,7 +189,7 @@ func Test_OnSetCurrency_onOk(t *testing.T) {
 
 	sender.EXPECT().SendMessage("Выберите валюту", []string{"RUB", "USD", "EUR", "CNY"}, int64(123))
 
-	err := model.IncomingMessage(Message{
+	_, err := model.IncomingMessage(Message{
 		Text:   "/setcurrency",
 		UserID: 123,
 	})
@@ -255,7 +255,7 @@ func Test_OnSetLimit_onOk(t *testing.T) {
 	txManager.EXPECT().WithinTransaction(ctx, gomock.Not(gomock.Nil())).Return(nil)
 	sender.EXPECT().SendMessage("Лимит установлен", nil, int64(123))
 
-	err := model.IncomingMessage(Message{
+	_, err := model.IncomingMessage(Message{
 		Text:   "/setlimit 70",
 		UserID: 123,
 	})
@@ -277,7 +277,7 @@ func Test_OnDelLimit_onOk(t *testing.T) {
 	txManager.EXPECT().WithinTransaction(ctx, gomock.Not(gomock.Nil())).Return(nil)
 	sender.EXPECT().SendMessage("Лимит сброшен", nil, int64(123))
 
-	err := model.IncomingMessage(Message{
+	_, err := model.IncomingMessage(Message{
 		Text:   "/dellimit",
 		UserID: 123,
 	})
