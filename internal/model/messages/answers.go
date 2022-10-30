@@ -25,4 +25,5 @@ const (
 	canNotCreateReport    = "Произошла ошибка при формировании отчета"
 	limitExceeded         = "Превышен лимит"
 	userNotFound          = "Такой пользователь не существует"
+	noDataForReport       = "Отсутствуют расходы за данный период"
 )

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -13,6 +12,8 @@ import (
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/repository/database"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/service/exchangeRate"
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/logger"
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -20,17 +21,20 @@ func main() {
 
 	cfg, err := config.New()
 	if err != nil {
-		log.Fatal("config init failed:", err)
+		logger.Fatal("config init failed", zap.Error(err))
+		os.Exit(1)
 	}
 
 	tgClient, err := tg.New(cfg)
 	if err != nil {
-		log.Fatal("tg client init failed:", err)
+		logger.Fatal("tg client init failed", zap.Error(err))
+		os.Exit(1)
 	}
 
 	conn, err := pgx.Connect(context.Background(), cfg.DatabaseDSN())
 	if err != nil {
-		log.Fatal("cannot connect to database:", err)
+		logger.Fatal("cannot connect to database", zap.Error(err))
+		os.Exit(1)
 	}
 	defer conn.Close(ctx)
 

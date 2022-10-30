@@ -1,12 +1,13 @@
 package tg
 
 import (
-	"log"
 	"sync"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/pkg/errors"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages"
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/logger"
+	"go.uber.org/zap"
 )
 
 type tokenGetter interface {
@@ -56,29 +57,37 @@ func (c *Client) ListenUpdates(msgModel *messages.Model) {
 
 	updates := c.client.GetUpdatesChan(u)
 
-	log.Println("listening for messages")
+	logger.Info("listening for messages")
 
 	c.wg.Add(1)
 	for update := range updates {
 		if update.Message != nil {
-			log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
+			logger.Info(
+				"starting process message",
+				zap.String("from", update.Message.From.UserName),
+				zap.String("msg", update.Message.Text),
+			)
 
 			err := msgModel.IncomingMessage(messages.Message{
 				Text:   update.Message.Text,
 				UserID: update.Message.From.ID,
 			})
 			if err != nil {
-				log.Println("error processing message:", err)
+				logger.Error("cannot handle message", zap.Error(err))
 			}
 		} else if update.CallbackQuery != nil {
-			log.Printf("[%s] callback %s", update.CallbackQuery.From.UserName, update.CallbackQuery.Data)
+			logger.Info(
+				"starting process callback",
+				zap.String("from", update.CallbackQuery.From.UserName),
+				zap.String("data", update.CallbackQuery.Data),
+			)
 
 			err := msgModel.SetCurrency(messages.CallbackQuery{
 				Data:   update.CallbackQuery.Data,
 				UserID: update.CallbackQuery.From.ID,
 			})
 			if err != nil {
-				log.Println("error processing callback:", err)
+				logger.Error("error processing callback", zap.Error(err))
 			}
 		}
 	}
