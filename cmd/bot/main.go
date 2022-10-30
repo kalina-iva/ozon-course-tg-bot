@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/clients/tg"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/config"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages"
@@ -24,6 +26,13 @@ func main() {
 		logger.Fatal("config init failed", zap.Error(err))
 		os.Exit(1)
 	}
+
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		if err := http.ListenAndServe(":8088", nil); err != nil {
+			logger.Fatal("cannot start server for metrics", zap.Error(err))
+		}
+	}()
 
 	tgClient, err := tg.New(cfg)
 	if err != nil {
