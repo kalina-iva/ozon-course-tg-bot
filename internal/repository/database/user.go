@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages/entity"
 )
@@ -20,6 +21,10 @@ func NewUserDb(conn *pgx.Conn) *UserDB {
 }
 
 func (u *UserDB) GetUser(ctx context.Context, userID int64) (*entity.User, error) {
+	var span opentracing.Span
+	span, ctx = opentracing.StartSpanFromContext(ctx, "start getting user from db")
+	defer span.Finish()
+
 	var row pgx.Row
 	tx := extractTx(ctx)
 	if tx == nil {

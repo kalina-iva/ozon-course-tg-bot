@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages/entity"
 )
@@ -32,6 +33,10 @@ func (e *ExpenseDB) New(ctx context.Context, userID int64, category string, amou
 }
 
 func (e *ExpenseDB) Report(ctx context.Context, userID int64, period time.Time) ([]*entity.Report, error) {
+	var span opentracing.Span
+	span, ctx = opentracing.StartSpanFromContext(ctx, "start preparing report data")
+	defer span.Finish()
+
 	const sql = "select category, sum(amount) as sum from expenses where user_id = $1 and created_at >= $2 group by category"
 	var rows pgx.Rows
 	var err error

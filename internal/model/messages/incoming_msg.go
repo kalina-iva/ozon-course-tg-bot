@@ -8,7 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
+	"github.com/uber/jaeger-client-go"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages/entity"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/logger"
 	"go.uber.org/zap"
@@ -84,17 +86,12 @@ type CallbackQuery struct {
 }
 
 func (m *Model) IncomingMessage(msg Message) (string, error) {
-	/*
-		var span opentracing.Span
-		span, m.ctx = opentracing.StartSpanFromContext(m.ctx, "operation_name")
-		defer span.Finish()
-
-		if spanContext, ok := span.Context().(jaeger.SpanContext); ok {
-			logger.Info("trace",
-				zap.String("id", spanContext.TraceID().String()),
-			)
-		}
-	*/
+	var span opentracing.Span
+	span, m.ctx = opentracing.StartSpanFromContext(m.ctx, "start processing message")
+	defer span.Finish()
+	if spanContext, ok := span.Context().(jaeger.SpanContext); ok {
+		logger.Info("start tracing incoming message", zap.String("id", spanContext.TraceID().String()))
+	}
 
 	var text string
 	var cases []string
@@ -248,6 +245,10 @@ func (m *Model) convertAmountToRub(user entity.User, amount float64) (uint64, er
 }
 
 func (m *Model) reportHandler(userID int64, params []string) string {
+	var span opentracing.Span
+	span, m.ctx = opentracing.StartSpanFromContext(m.ctx, "report handler")
+	defer span.Finish()
+
 	const cntRequiredParams = 2
 	if len(params) < cntRequiredParams {
 		logger.Info("no required params", zap.Strings("params", params))
