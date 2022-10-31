@@ -84,6 +84,18 @@ type CallbackQuery struct {
 }
 
 func (m *Model) IncomingMessage(msg Message) (string, error) {
+	/*
+		var span opentracing.Span
+		span, m.ctx = opentracing.StartSpanFromContext(m.ctx, "operation_name")
+		defer span.Finish()
+
+		if spanContext, ok := span.Context().(jaeger.SpanContext); ok {
+			logger.Info("trace",
+				zap.String("id", spanContext.TraceID().String()),
+			)
+		}
+	*/
+
 	var text string
 	var cases []string
 

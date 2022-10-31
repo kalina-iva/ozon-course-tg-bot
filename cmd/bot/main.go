@@ -15,6 +15,7 @@ import (
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/repository/database"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/service/exchangeRate"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/logger"
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/tracing"
 	"go.uber.org/zap"
 )
 
@@ -26,6 +27,8 @@ func main() {
 		logger.Fatal("config init failed", zap.Error(err))
 		os.Exit(1)
 	}
+
+	tracing.InitTracing(cfg.ServiceName(), cfg.TracingParam())
 
 	go func() {
 		http.Handle("/metrics", promhttp.Handler())

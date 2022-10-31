@@ -15,10 +15,16 @@ type exchangeRate struct {
 	RefreshRateInMin int64  `yaml:"refresh_rate_in_min"`
 }
 
+type tracing struct {
+	Param float64 `yaml:"param"`
+}
+
 type config struct {
 	Token        string       `yaml:"token"`
 	ExchangeRate exchangeRate `yaml:"exchange_rate"`
 	DatabaseDSN  string       `yaml:"db_dsn"`
+	Service      string       `yaml:"service"`
+	Tracing      tracing      `yaml:"tracing"`
 }
 
 type Service struct {
@@ -59,4 +65,12 @@ func (s *Service) ExchangeRateRefreshRateInMin() int64 {
 
 func (s *Service) DatabaseDSN() string {
 	return s.config.DatabaseDSN
+}
+
+func (s *Service) ServiceName() string {
+	return s.config.Service
+}
+
+func (s *Service) TracingParam() float64 {
+	return s.config.Tracing.Param
 }

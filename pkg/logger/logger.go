@@ -10,16 +10,7 @@ var logger *zap.Logger
 
 func init() {
 	var err error
-	env := "dev"
-	if env == "dev" {
-		logger, err = zap.NewDevelopment()
-	} else {
-		cfg := zap.NewProductionConfig()
-		cfg.DisableCaller = true
-		cfg.DisableStacktrace = true
-		cfg.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
-		logger, err = cfg.Build()
-	}
+	logger, err = zap.NewDevelopment()
 	if err != nil {
 		log.Fatal("cannot init zap", err)
 	}
