@@ -1,13 +1,16 @@
 package tracing
 
 import (
+	"io"
+
+	"github.com/pkg/errors"
 	"github.com/uber/jaeger-client-go"
 	"github.com/uber/jaeger-client-go/config"
-	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/logger"
-	"go.uber.org/zap"
 )
 
-func InitTracing(service string, param float64) {
+var closer io.Closer
+
+func InitTracing(service string, param float64) error {
 	cfg := config.Configuration{
 		Sampler: &config.SamplerConfig{
 			Type:  jaeger.SamplerTypeConst,
@@ -15,8 +18,14 @@ func InitTracing(service string, param float64) {
 		},
 	}
 
-	_, err := cfg.InitGlobalTracer(service)
+	var err error
+	closer, err = cfg.InitGlobalTracer(service)
 	if err != nil {
-		logger.Fatal("cannot init tracing", zap.Error(err))
+		return errors.Wrap(err, "cannot init tracing")
 	}
+	return nil
+}
+
+func Close() {
+	closer.Close()
 }

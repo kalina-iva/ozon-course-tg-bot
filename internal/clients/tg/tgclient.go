@@ -1,6 +1,7 @@
 package tg
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -9,7 +10,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages"
-	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/logger"
 	"go.uber.org/zap"
 )
 
@@ -69,18 +69,18 @@ func (c *Client) SendMessage(text string, cases []string, userID int64) error {
 	return nil
 }
 
-func (c *Client) ListenUpdates(msgModel *messages.Model) {
+func (c *Client) ListenUpdates(ctx context.Context, msgModel *messages.Model) {
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
 	updates := c.client.GetUpdatesChan(u)
 
-	logger.Info("listening for messages")
+	zap.L().Info("listening for messages")
 
 	c.wg.Add(1)
 	for update := range updates {
 		if update.Message != nil {
-			logger.Info(
+			zap.L().Info(
 				"starting process message",
 				zap.String("from", update.Message.From.UserName),
 				zap.String("msg", update.Message.Text),
@@ -88,28 +88,28 @@ func (c *Client) ListenUpdates(msgModel *messages.Model) {
 
 			startTime := time.Now()
 
-			command, err := msgModel.IncomingMessage(messages.Message{
+			command, err := msgModel.IncomingMessage(ctx, messages.Message{
 				Text:   update.Message.Text,
 				UserID: update.Message.From.ID,
 			})
 
 			HistogramResponseTime.WithLabelValues(command).Observe(time.Since(startTime).Seconds())
 			if err != nil {
-				logger.Error("cannot handle message", zap.Error(err))
+				zap.L().Error("cannot handle message", zap.Error(err))
 			}
 		} else if update.CallbackQuery != nil {
-			logger.Info(
+			zap.L().Info(
 				"starting process callback",
 				zap.String("from", update.CallbackQuery.From.UserName),
 				zap.String("data", update.CallbackQuery.Data),
 			)
 
-			err := msgModel.SetCurrency(messages.CallbackQuery{
+			err := msgModel.SetCurrency(ctx, messages.CallbackQuery{
 				Data:   update.CallbackQuery.Data,
 				UserID: update.CallbackQuery.From.ID,
 			})
 			if err != nil {
-				logger.Error("error processing callback", zap.Error(err))
+				zap.L().Error("error processing callback", zap.Error(err))
 			}
 		}
 	}

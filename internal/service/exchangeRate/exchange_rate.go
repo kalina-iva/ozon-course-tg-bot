@@ -11,7 +11,6 @@ import (
 
 	"github.com/pkg/errors"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages"
-	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/logger"
 	"go.uber.org/zap"
 )
 
@@ -55,7 +54,7 @@ func (s *Service) Run() {
 			case <-time.After(s.refreshRateInMin):
 				err := s.getRates(chanForResp)
 				if err != nil {
-					logger.Error("cannot get rates", zap.Error(err))
+					zap.L().Error("cannot get rates", zap.Error(err))
 				}
 			case <-ctx.Done():
 				close(chanForResp)
@@ -69,9 +68,9 @@ func (s *Service) Run() {
 	go func() {
 		for result := range chanForResp {
 			for code, rate := range result.Rates {
-				logger.Info("get exchange rate", zap.String("code", code), zap.Float64("rate", rate))
+				zap.L().Info("get exchange rate", zap.String("code", code), zap.Float64("rate", rate))
 				if err := s.currencyRepository.SaveRate(ctx, code, rate); err != nil {
-					logger.Error("cannot save rate", zap.Error(err))
+					zap.L().Error("cannot save rate", zap.Error(err))
 				}
 			}
 		}
@@ -111,7 +110,7 @@ func (s *Service) getRates(ch chan<- currencyResult) error {
 	if err := json.NewDecoder(res.Body).Decode(&result); err != nil {
 		return errors.Wrap(err, "decode response body")
 	}
-	logger.Info("exchange rate was successfully received")
+	zap.L().Info("exchange rate was successfully received")
 	ch <- result
 	return nil
 }

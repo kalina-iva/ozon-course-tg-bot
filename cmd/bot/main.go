@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,39 +15,46 @@ import (
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/repository/database"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/service/exchangeRate"
-	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/logger"
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/logging"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/tracing"
 	"go.uber.org/zap"
 )
 
 func main() {
 	ctx := context.Background()
+	err := logging.InitLogger()
+	if err != nil {
+		log.Fatal("logger init failed:", err)
+	}
+	defer logging.Close()
 
 	cfg, err := config.New()
 	if err != nil {
-		logger.Fatal("config init failed", zap.Error(err))
-		os.Exit(1)
+		zap.L().Fatal("config init failed", zap.Error(err))
 	}
 
-	tracing.InitTracing(cfg.ServiceName(), cfg.TracingParam())
+	err = tracing.InitTracing(cfg.ServiceName(), cfg.TracingParam())
+	if err != nil {
+		zap.L().Fatal("tracing init failed", zap.Error(err))
+	}
+	defer tracing.Close()
 
 	go func() {
 		http.Handle("/metrics", promhttp.Handler())
 		if err := http.ListenAndServe(":8088", nil); err != nil {
-			logger.Fatal("cannot start server for metrics", zap.Error(err))
+			zap.L().Fatal("cannot start server for metrics", zap.Error(err))
 		}
 	}()
 
 	tgClient, err := tg.New(cfg)
 	if err != nil {
-		logger.Fatal("tg client init failed", zap.Error(err))
-		os.Exit(1)
+		zap.L().Fatal("tg client init failed", zap.Error(err))
 	}
+	defer tgClient.Close()
 
 	conn, err := pgx.Connect(context.Background(), cfg.DatabaseDSN())
 	if err != nil {
-		logger.Fatal("cannot connect to database", zap.Error(err))
-		os.Exit(1)
+		zap.L().Fatal("cannot connect to database", zap.Error(err))
 	}
 	defer conn.Close(ctx)
 
@@ -62,14 +70,12 @@ func main() {
 		cfg.ExchangeRateRefreshRateInMin(),
 	)
 	exchangeRateService.Run()
+	defer exchangeRateService.Close()
 
-	msgModel := messages.New(ctx, tgClient, expenseRepo, exchangeRateRepo, userRepo, txManager)
-	go tgClient.ListenUpdates(msgModel)
+	msgModel := messages.New(tgClient, expenseRepo, exchangeRateRepo, userRepo, txManager)
+	go tgClient.ListenUpdates(ctx, msgModel)
 
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	<-done
-
-	exchangeRateService.Close()
-	tgClient.Close()
 }

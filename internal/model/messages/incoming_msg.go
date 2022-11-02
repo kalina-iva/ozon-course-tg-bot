@@ -12,7 +12,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/uber/jaeger-client-go"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages/entity"
-	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/logger"
 	"go.uber.org/zap"
 )
 
@@ -54,11 +53,9 @@ type Model struct {
 	exchangeRateRepo exchangeRateRepository
 	userRepo         userRepository
 	txManager        txManager
-	ctx              context.Context
 }
 
 func New(
-	ctx context.Context,
 	tgClient messageSender,
 	expenseRepo expenseRepository,
 	exchangeRateRepo exchangeRateRepository,
@@ -66,7 +63,6 @@ func New(
 	txManager txManager,
 ) *Model {
 	return &Model{
-		ctx:              ctx,
 		tgClient:         tgClient,
 		expenseRepo:      expenseRepo,
 		exchangeRateRepo: exchangeRateRepo,
@@ -85,12 +81,11 @@ type CallbackQuery struct {
 	UserID int64
 }
 
-func (m *Model) IncomingMessage(msg Message) (string, error) {
-	var span opentracing.Span
-	span, m.ctx = opentracing.StartSpanFromContext(m.ctx, "start processing message")
+func (m *Model) IncomingMessage(ctx context.Context, msg Message) (string, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "start processing message")
 	defer span.Finish()
 	if spanContext, ok := span.Context().(jaeger.SpanContext); ok {
-		logger.Info("start tracing incoming message", zap.String("id", spanContext.TraceID().String()))
+		zap.L().Info("start tracing incoming message", zap.String("id", spanContext.TraceID().String()))
 	}
 
 	var text string
@@ -103,28 +98,28 @@ func (m *Model) IncomingMessage(msg Message) (string, error) {
 	case "/help":
 		text = manual
 	case "/newexpense":
-		text = m.newExpenseHandler(msg.UserID, params)
+		text = m.newExpenseHandler(ctx, msg.UserID, params)
 	case "/report":
-		text = m.reportHandler(msg.UserID, params)
+		text = m.reportHandler(ctx, msg.UserID, params)
 	case "/setcurrency":
 		text = chooseCurrency
 		cases = AvailableCurrencies
 	case "/setlimit":
-		text = m.limitHandler(msg.UserID, params)
+		text = m.limitHandler(ctx, msg.UserID, params)
 	case "/dellimit":
-		text = m.delLimitHandler(msg.UserID)
+		text = m.delLimitHandler(ctx, msg.UserID)
 	default:
-		logger.Info("unknown command", zap.String("command", params[0]))
+		zap.L().Info("unknown command", zap.String("command", params[0]))
 		text = unknownCommand
 	}
 	return params[0], m.tgClient.SendMessage(text, cases, msg.UserID)
 }
 
-func (m *Model) SetCurrency(msg CallbackQuery) error {
-	err := m.txManager.WithinTransaction(m.ctx, func(ctx context.Context) error {
+func (m *Model) SetCurrency(ctx context.Context, msg CallbackQuery) error {
+	err := m.txManager.WithinTransaction(ctx, func(ctx context.Context) error {
 		_, err := m.userRepo.GetUser(ctx, msg.UserID)
 		if err != nil {
-			logger.Error("cannot get user", zap.Error(err))
+			zap.L().Error("cannot get user", zap.Error(err))
 			return errUserNotFound
 		}
 		if err := m.userRepo.SetCurrency(ctx, msg.UserID, msg.Data); err != nil {
@@ -138,7 +133,7 @@ func (m *Model) SetCurrency(msg CallbackQuery) error {
 		if errors.Is(err, errUserNotFound) {
 			text = userNotFound
 		} else {
-			logger.Error("cannot set currency", zap.Error(err))
+			zap.L().Error("cannot set currency", zap.Error(err))
 			text = canNotSaveCurrency
 		}
 	} else {
@@ -148,17 +143,17 @@ func (m *Model) SetCurrency(msg CallbackQuery) error {
 	return m.tgClient.SendMessage(text, nil, msg.UserID)
 }
 
-func (m *Model) newExpenseHandler(userID int64, params []string) string {
+func (m *Model) newExpenseHandler(ctx context.Context, userID int64, params []string) string {
 	const cntRequiredParams = 3
 	if len(params) < cntRequiredParams {
-		logger.Info("no required params", zap.Strings("params", params))
+		zap.L().Info("no required params", zap.Strings("params", params))
 		return needCategoryAndAmount
 	}
 	category := params[1]
 
 	parsedAmount, err := m.parseAmount(params[2])
 	if err != nil {
-		logger.Error("cannot parse amount", zap.Error(err))
+		zap.L().Error("cannot parse amount", zap.Error(err))
 		return invalidAmount
 	}
 
@@ -166,17 +161,17 @@ func (m *Model) newExpenseHandler(userID int64, params []string) string {
 	if len(params) == cntRequiredParams+1 {
 		date, err = time.Parse("01-02-2006", params[3])
 		if err != nil {
-			logger.Error("cannot parse date", zap.Error(err))
+			zap.L().Error("cannot parse date", zap.Error(err))
 			return invalidDate
 		}
 	} else {
 		date = time.Now()
 	}
 
-	err = m.txManager.WithinTransaction(m.ctx, func(ctx context.Context) error {
+	err = m.txManager.WithinTransaction(ctx, func(ctx context.Context) error {
 		user, err := m.userRepo.GetUser(ctx, userID)
 		if err != nil {
-			logger.Error("cannot get user", zap.Error(err))
+			zap.L().Error("cannot get user", zap.Error(err))
 			return errUserNotFound
 		}
 		if user.MonthlyLimit != nil {
@@ -185,12 +180,12 @@ func (m *Model) newExpenseHandler(userID int64, params []string) string {
 				return err
 			}
 			if currentSum > *user.MonthlyLimit {
-				logger.Info("limit exceeded", zap.Uint64("current", currentSum), zap.Uint64("limit", *user.MonthlyLimit))
+				zap.L().Info("limit exceeded", zap.Uint64("current", currentSum), zap.Uint64("limit", *user.MonthlyLimit))
 				return errLimitExceeded
 			}
 		}
 		var amount uint64
-		if amount, err = m.convertAmountToRub(*user, parsedAmount); err != nil {
+		if amount, err = m.convertAmountToRub(ctx, *user, parsedAmount); err != nil {
 			return err
 		}
 		if err = m.expenseRepo.New(ctx, userID, category, amount, date); err != nil {
@@ -212,7 +207,7 @@ func getMsgTextForExpenseByErr(err error) string {
 	if errors.Is(err, errUserNotFound) {
 		return userNotFound
 	}
-	logger.Error("cannot get sum for period", zap.Error(err))
+	zap.L().Error("cannot get sum for period", zap.Error(err))
 	return canNotAddExpense
 }
 
@@ -234,9 +229,9 @@ func (m *Model) parseAmount(amountStr string) (float64, error) {
 	return amount, nil
 }
 
-func (m *Model) convertAmountToRub(user entity.User, amount float64) (uint64, error) {
+func (m *Model) convertAmountToRub(ctx context.Context, user entity.User, amount float64) (uint64, error) {
 	code := m.getCurrencyCode(user)
-	rate, err := m.exchangeRateRepo.GetRate(m.ctx, code)
+	rate, err := m.exchangeRateRepo.GetRate(ctx, code)
 	if err != nil {
 		return 0, errors.Wrap(err, "get exchange rate")
 	}
@@ -244,14 +239,13 @@ func (m *Model) convertAmountToRub(user entity.User, amount float64) (uint64, er
 	return uint64(math.Round(amount * cntKopInRub)), nil
 }
 
-func (m *Model) reportHandler(userID int64, params []string) string {
-	var span opentracing.Span
-	span, m.ctx = opentracing.StartSpanFromContext(m.ctx, "report handler")
+func (m *Model) reportHandler(ctx context.Context, userID int64, params []string) string {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "report handler")
 	defer span.Finish()
 
 	const cntRequiredParams = 2
 	if len(params) < cntRequiredParams {
-		logger.Info("no required params", zap.Strings("params", params))
+		zap.L().Info("no required params", zap.Strings("params", params))
 		return needPeriod
 	}
 	var period time.Time
@@ -264,27 +258,27 @@ func (m *Model) reportHandler(userID int64, params []string) string {
 	case "w":
 		period = now.AddDate(0, 0, -7)
 	default:
-		logger.Info("invalid period", zap.String("period", params[1]))
+		zap.L().Info("invalid period", zap.String("period", params[1]))
 		return invalidPeriod
 	}
 
-	user, err := m.userRepo.GetUser(m.ctx, userID)
+	user, err := m.userRepo.GetUser(ctx, userID)
 	if err != nil {
-		logger.Error("cannot get user", zap.Error(err))
+		zap.L().Error("cannot get user", zap.Error(err))
 		return userNotFound
 	}
 	code := m.getCurrencyCode(*user)
-	rate, err := m.exchangeRateRepo.GetRate(m.ctx, code)
+	rate, err := m.exchangeRateRepo.GetRate(ctx, code)
 	if err != nil {
-		logger.Error("cannot get rate from expenseRepo", zap.Error(err))
+		zap.L().Error("cannot get rate from expenseRepo", zap.Error(err))
 		return canNotGetRate
 	}
 
 	var sb strings.Builder
 	currencyShort := getCurrencyShortByCode(code)
-	report, err := m.expenseRepo.Report(m.ctx, userID, period)
+	report, err := m.expenseRepo.Report(ctx, userID, period)
 	if err != nil {
-		logger.Error("cannot get report", zap.Error(err))
+		zap.L().Error("cannot get report", zap.Error(err))
 		return canNotCreateReport
 	}
 
@@ -294,7 +288,7 @@ func (m *Model) reportHandler(userID int64, params []string) string {
 		sb.WriteString(fmt.Sprintf(": %.2f %v\n", amount/cntKopInRub, currencyShort))
 	}
 	if sb.Len() == 0 {
-		logger.Info("no data for report")
+		zap.L().Info("no data for report")
 		return noDataForReport
 	}
 	return sb.String()
@@ -321,20 +315,20 @@ func getCurrencyShortByCode(code string) (short string) {
 	return
 }
 
-func (m *Model) limitHandler(userID int64, params []string) string {
+func (m *Model) limitHandler(ctx context.Context, userID int64, params []string) string {
 	parsedAmount, err := m.parseAmount(params[1])
 	if err != nil {
-		logger.Error("cannot parse amount", zap.Error(err))
+		zap.L().Error("cannot parse amount", zap.Error(err))
 		return invalidAmount
 	}
-	err = m.txManager.WithinTransaction(m.ctx, func(ctx context.Context) error {
+	err = m.txManager.WithinTransaction(ctx, func(ctx context.Context) error {
 		user, err := m.userRepo.GetUser(ctx, userID)
 		if err != nil {
-			logger.Error("cannot get user", zap.Error(err))
+			zap.L().Error("cannot get user", zap.Error(err))
 			return errUserNotFound
 		}
 		var amount uint64
-		if amount, err = m.convertAmountToRub(*user, parsedAmount); err != nil {
+		if amount, err = m.convertAmountToRub(ctx, *user, parsedAmount); err != nil {
 			return err
 		}
 		if err := m.userRepo.SetLimit(ctx, userID, amount); err != nil {
@@ -346,17 +340,17 @@ func (m *Model) limitHandler(userID int64, params []string) string {
 		if errors.Is(err, errUserNotFound) {
 			return userNotFound
 		}
-		logger.Error("cannot save limit", zap.Error(err))
+		zap.L().Error("cannot save limit", zap.Error(err))
 		return canNotSaveLimit
 	}
 	return limitSaved
 }
 
-func (m *Model) delLimitHandler(userID int64) string {
-	err := m.txManager.WithinTransaction(m.ctx, func(ctx context.Context) error {
+func (m *Model) delLimitHandler(ctx context.Context, userID int64) string {
+	err := m.txManager.WithinTransaction(ctx, func(ctx context.Context) error {
 		_, err := m.userRepo.GetUser(ctx, userID)
 		if err != nil {
-			logger.Error("cannot get user", zap.Error(err))
+			zap.L().Error("cannot get user", zap.Error(err))
 			return errUserNotFound
 		}
 		if err := m.userRepo.DelLimit(ctx, userID); err != nil {
@@ -368,7 +362,7 @@ func (m *Model) delLimitHandler(userID int64) string {
 		if errors.Is(err, errUserNotFound) {
 			return userNotFound
 		}
-		logger.Error("cannot save limit", zap.Error(err))
+		zap.L().Error("cannot save limit", zap.Error(err))
 		return canNotSaveLimit
 	}
 	return limitDeleted
