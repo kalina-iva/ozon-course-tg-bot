@@ -19,12 +19,17 @@ type tracing struct {
 	SamplingRatio float64 `yaml:"sampling_ratio"`
 }
 
+type metrics struct {
+	ServerAddress string `yaml:"server_address"`
+}
+
 type config struct {
 	Token        string       `yaml:"token"`
 	ExchangeRate exchangeRate `yaml:"exchange_rate"`
 	DatabaseDSN  string       `yaml:"db_dsn"`
 	ServiceName  string       `yaml:"service_name"`
 	Tracing      tracing      `yaml:"tracing"`
+	Metrics      metrics      `yaml:"metrics"`
 }
 
 type Service struct {
@@ -73,4 +78,8 @@ func (s *Service) ServiceName() string {
 
 func (s *Service) SamplingRatio() float64 {
 	return s.config.Tracing.SamplingRatio
+}
+
+func (s *Service) MetricsServerAddress() string {
+	return s.config.Metrics.ServerAddress
 }

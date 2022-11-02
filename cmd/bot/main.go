@@ -3,19 +3,18 @@ package main
 import (
 	"context"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/clients/tg"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/config"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/repository/database"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/service/exchangeRate"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/logging"
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/metrics"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/tracing"
 	"go.uber.org/zap"
 )
@@ -40,11 +39,12 @@ func main() {
 	defer tracing.Close()
 
 	go func() {
-		http.Handle("/metrics", promhttp.Handler())
-		if err := http.ListenAndServe(":8088", nil); err != nil {
-			zap.L().Fatal("cannot start server for metrics", zap.Error(err))
+		err = metrics.InitMetrics(cfg.MetricsServerAddress())
+		if err != nil {
+			zap.L().Fatal("metrics init failed", zap.Error(err))
 		}
 	}()
+	defer metrics.Close()
 
 	tgClient, err := tg.New(cfg)
 	if err != nil {
