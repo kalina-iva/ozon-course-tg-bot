@@ -21,6 +21,9 @@ func NewExpenseDb(conn *pgx.Conn) *ExpenseDB {
 }
 
 func (e *ExpenseDB) New(ctx context.Context, userID int64, category string, amount uint64, date time.Time) error {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "create expense in db")
+	defer span.Finish()
+
 	const sql = "insert into expenses (user_id, category, amount, created_at) VALUES ($1, $2, $3, $4)"
 	tx := extractTx(ctx)
 	var err error
@@ -33,8 +36,7 @@ func (e *ExpenseDB) New(ctx context.Context, userID int64, category string, amou
 }
 
 func (e *ExpenseDB) Report(ctx context.Context, userID int64, period time.Time) ([]*entity.Report, error) {
-	var span opentracing.Span
-	span, ctx = opentracing.StartSpanFromContext(ctx, "start preparing report data")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "start preparing report data")
 	defer span.Finish()
 
 	const sql = "select category, sum(amount) as sum from expenses where user_id = $1 and created_at >= $2 group by category"
@@ -63,6 +65,9 @@ func (e *ExpenseDB) Report(ctx context.Context, userID int64, period time.Time) 
 }
 
 func (e *ExpenseDB) GetAmountByPeriod(ctx context.Context, userID int64, period time.Time) (uint64, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "get amount by period from db")
+	defer span.Finish()
+
 	const sql = "select sum(amount) as sum from expenses where user_id = $1 and created_at >= $2 group by user_id"
 	tx := extractTx(ctx)
 	var row pgx.Row

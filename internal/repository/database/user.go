@@ -21,7 +21,7 @@ func NewUserDb(conn *pgx.Conn) *UserDB {
 }
 
 func (u *UserDB) GetUser(ctx context.Context, userID int64) (*entity.User, error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "start getting user from db")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "getting user from db")
 	defer span.Finish()
 
 	var row pgx.Row
@@ -53,6 +53,9 @@ func (u *UserDB) GetUser(ctx context.Context, userID int64) (*entity.User, error
 }
 
 func (u *UserDB) createUser(ctx context.Context, userID int64) (*entity.User, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "create user")
+	defer span.Finish()
+
 	var err error
 	timeNow := time.Now()
 	tx := extractTx(ctx)
@@ -73,14 +76,23 @@ func (u *UserDB) createUser(ctx context.Context, userID int64) (*entity.User, er
 }
 
 func (u *UserDB) SetCurrency(ctx context.Context, userID int64, currency string) error {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "set currency")
+	defer span.Finish()
+
 	return u.exec(ctx, "update users set currency_code = $1 where id = $2", currency, userID)
 }
 
 func (u *UserDB) SetLimit(ctx context.Context, userID int64, limit uint64) error {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "set limit")
+	defer span.Finish()
+
 	return u.exec(ctx, "update users set monthly_limit = $1 where id = $2", limit, userID)
 }
 
 func (u *UserDB) DelLimit(ctx context.Context, userID int64) error {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "del limit")
+	defer span.Finish()
+
 	return u.exec(ctx, "update users set monthly_limit = $1 where id = $2", nil, userID)
 }
 

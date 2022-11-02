@@ -142,6 +142,9 @@ func (m *Model) SetCurrency(ctx context.Context, msg CallbackQuery) error {
 }
 
 func (m *Model) newExpenseHandler(ctx context.Context, userID int64, params []string) string {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "expense handler")
+	defer span.Finish()
+
 	const cntRequiredParams = 3
 	if len(params) < cntRequiredParams {
 		zap.L().Info("no required params", zap.Strings("params", params))
@@ -314,6 +317,9 @@ func getCurrencyShortByCode(code string) (short string) {
 }
 
 func (m *Model) limitHandler(ctx context.Context, userID int64, params []string) string {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "limit handler")
+	defer span.Finish()
+
 	parsedAmount, err := m.parseAmount(params[1])
 	if err != nil {
 		zap.L().Error("cannot parse amount", zap.Error(err))
@@ -345,6 +351,9 @@ func (m *Model) limitHandler(ctx context.Context, userID int64, params []string)
 }
 
 func (m *Model) delLimitHandler(ctx context.Context, userID int64) string {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "del limit handler")
+	defer span.Finish()
+
 	err := m.txManager.WithinTransaction(ctx, func(ctx context.Context) error {
 		_, err := m.userRepo.GetUser(ctx, userID)
 		if err != nil {
