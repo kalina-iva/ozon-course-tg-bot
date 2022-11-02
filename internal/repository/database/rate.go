@@ -19,8 +19,7 @@ func NewRateDb(conn *pgx.Conn) *RateDB {
 }
 
 func (r *RateDB) GetRate(ctx context.Context, code string) (float64, error) {
-	var span opentracing.Span
-	span, ctx = opentracing.StartSpanFromContext(ctx, "start getting rate")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "start getting rate")
 	defer span.Finish()
 
 	row := r.conn.QueryRow(ctx, "select rate from exchange_rates where currency_code = $1 order by created_at desc limit 1", code)

@@ -28,6 +28,8 @@ services:
       - ../data/grafana/:/var/lib/grafana
     links:
       - prometheus
+    depends_on:
+      - prometheus
 
   jaeger:
     image: jaegertracing/all-in-one:1.18

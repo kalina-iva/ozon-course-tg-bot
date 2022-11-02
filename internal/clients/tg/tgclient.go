@@ -7,25 +7,9 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/pkg/errors"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages"
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/metrics"
 	"go.uber.org/zap"
-)
-
-const (
-	minResponseTime = 0.0001
-	maxResponseTime = 2
-	cntBuckets      = 16
-)
-
-var HistogramResponseTime = promauto.NewHistogramVec(
-	prometheus.HistogramOpts{
-		Namespace: "ozon",
-		Name:      "histogram_msg_processing_time_sec",
-		Buckets:   prometheus.ExponentialBucketsRange(minResponseTime, maxResponseTime, cntBuckets),
-	},
-	[]string{"command"},
 )
 
 type tokenGetter interface {
@@ -93,7 +77,7 @@ func (c *Client) ListenUpdates(ctx context.Context, msgModel *messages.Model) {
 				UserID: update.Message.From.ID,
 			})
 
-			HistogramResponseTime.WithLabelValues(command).Observe(time.Since(startTime).Seconds())
+			metrics.HistogramResponseTime.WithLabelValues(command).Observe(time.Since(startTime).Seconds())
 			if err != nil {
 				zap.L().Error("cannot handle message", zap.Error(err))
 			}

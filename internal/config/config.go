@@ -16,14 +16,14 @@ type exchangeRate struct {
 }
 
 type tracing struct {
-	Param float64 `yaml:"param"`
+	SamplingRatio float64 `yaml:"sampling_ratio"`
 }
 
 type config struct {
 	Token        string       `yaml:"token"`
 	ExchangeRate exchangeRate `yaml:"exchange_rate"`
 	DatabaseDSN  string       `yaml:"db_dsn"`
-	Service      string       `yaml:"service"`
+	ServiceName  string       `yaml:"service_name"`
 	Tracing      tracing      `yaml:"tracing"`
 }
 
@@ -68,9 +68,9 @@ func (s *Service) DatabaseDSN() string {
 }
 
 func (s *Service) ServiceName() string {
-	return s.config.Service
+	return s.config.ServiceName
 }
 
-func (s *Service) TracingParam() float64 {
-	return s.config.Tracing.Param
+func (s *Service) SamplingRatio() float64 {
+	return s.config.Tracing.SamplingRatio
 }

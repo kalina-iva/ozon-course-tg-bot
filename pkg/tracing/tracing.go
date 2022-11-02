@@ -10,16 +10,16 @@ import (
 
 var closer io.Closer
 
-func InitTracing(service string, param float64) error {
+func InitTracing(serviceName string, samplingRatio float64) error {
 	cfg := config.Configuration{
 		Sampler: &config.SamplerConfig{
 			Type:  jaeger.SamplerTypeConst,
-			Param: param,
+			Param: samplingRatio,
 		},
 	}
 
 	var err error
-	closer, err = cfg.InitGlobalTracer(service)
+	closer, err = cfg.InitGlobalTracer(serviceName)
 	if err != nil {
 		return errors.Wrap(err, "cannot init tracing")
 	}

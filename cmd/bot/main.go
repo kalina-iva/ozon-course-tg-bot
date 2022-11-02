@@ -33,7 +33,7 @@ func main() {
 		zap.L().Fatal("config init failed", zap.Error(err))
 	}
 
-	err = tracing.InitTracing(cfg.ServiceName(), cfg.TracingParam())
+	err = tracing.InitTracing(cfg.ServiceName(), cfg.SamplingRatio())
 	if err != nil {
 		zap.L().Fatal("tracing init failed", zap.Error(err))
 	}

@@ -21,8 +21,7 @@ func NewUserDb(conn *pgx.Conn) *UserDB {
 }
 
 func (u *UserDB) GetUser(ctx context.Context, userID int64) (*entity.User, error) {
-	var span opentracing.Span
-	span, ctx = opentracing.StartSpanFromContext(ctx, "start getting user from db")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "start getting user from db")
 	defer span.Finish()
 
 	var row pgx.Row
