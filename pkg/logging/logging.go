@@ -1,8 +1,6 @@
 package logging
 
 import (
-	"log"
-
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
@@ -19,8 +17,6 @@ func InitLogger() error {
 	return nil
 }
 
-func Close() {
-	if err := logger.Sync(); err != nil {
-		log.Print("sync logger failed")
-	}
+func Close() error {
+	return logger.Sync()
 }

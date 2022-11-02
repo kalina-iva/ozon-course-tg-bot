@@ -101,13 +101,12 @@ func Test_OnNewExpenseCommand_onOk(t *testing.T) {
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
-	ctx := context.Background()
 	model := New(sender, expenseRepo, rateRepository, userRepo, txManager)
 
-	txManager.EXPECT().WithinTransaction(ctx, gomock.Not(gomock.Nil())).Return(nil)
+	txManager.EXPECT().WithinTransaction(gomock.Any(), gomock.Not(gomock.Nil())).Return(nil)
 	sender.EXPECT().SendMessage("Расход добавлен", nil, int64(123))
 
-	_, err := model.IncomingMessage(ctx, Message{
+	_, err := model.IncomingMessage(context.Background(), Message{
 		Text:   "/newexpense category 76.10 02-10-2022",
 		UserID: 123,
 	})
@@ -123,13 +122,12 @@ func Test_OnNewExpenseCommand_onLimitExceeded(t *testing.T) {
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
-	ctx := context.Background()
 	model := New(sender, expenseRepo, rateRepository, userRepo, txManager)
 
-	txManager.EXPECT().WithinTransaction(ctx, gomock.Not(gomock.Nil())).Return(errLimitExceeded)
+	txManager.EXPECT().WithinTransaction(gomock.Any(), gomock.Not(gomock.Nil())).Return(errLimitExceeded)
 	sender.EXPECT().SendMessage("Превышен лимит", nil, int64(123))
 
-	_, err := model.IncomingMessage(ctx, Message{
+	_, err := model.IncomingMessage(context.Background(), Message{
 		Text:   "/newexpense category 76.10 02-10-2022",
 		UserID: 123,
 	})
@@ -205,13 +203,12 @@ func Test_OnCallbackSetCurrency_onOk(t *testing.T) {
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
-	ctx := context.Background()
 	model := New(sender, expenseRepo, rateRepository, userRepo, txManager)
 
-	txManager.EXPECT().WithinTransaction(ctx, gomock.Not(gomock.Nil())).Return(nil)
+	txManager.EXPECT().WithinTransaction(gomock.Any(), gomock.Not(gomock.Nil())).Return(nil)
 	sender.EXPECT().SendMessage("Валюта установлена", nil, int64(123))
 
-	err := model.SetCurrency(ctx, CallbackQuery{
+	err := model.SetCurrency(context.Background(), CallbackQuery{
 		Data:   "USD",
 		UserID: 123,
 	})
@@ -227,13 +224,12 @@ func Test_OnCallbackSetCurrency_onUserNotFound(t *testing.T) {
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
-	ctx := context.Background()
 	model := New(sender, expenseRepo, rateRepository, userRepo, txManager)
 
-	txManager.EXPECT().WithinTransaction(ctx, gomock.Not(gomock.Nil())).Return(errUserNotFound)
+	txManager.EXPECT().WithinTransaction(gomock.Any(), gomock.Not(gomock.Nil())).Return(errUserNotFound)
 	sender.EXPECT().SendMessage("Такой пользователь не существует", nil, int64(123))
 
-	err := model.SetCurrency(ctx, CallbackQuery{
+	err := model.SetCurrency(context.Background(), CallbackQuery{
 		Data:   "USD",
 		UserID: 123,
 	})
@@ -249,13 +245,12 @@ func Test_OnSetLimit_onOk(t *testing.T) {
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
-	ctx := context.Background()
 	model := New(sender, expenseRepo, rateRepository, userRepo, txManager)
 
-	txManager.EXPECT().WithinTransaction(ctx, gomock.Not(gomock.Nil())).Return(nil)
+	txManager.EXPECT().WithinTransaction(gomock.Any(), gomock.Not(gomock.Nil())).Return(nil)
 	sender.EXPECT().SendMessage("Лимит установлен", nil, int64(123))
 
-	_, err := model.IncomingMessage(ctx, Message{
+	_, err := model.IncomingMessage(context.Background(), Message{
 		Text:   "/setlimit 70",
 		UserID: 123,
 	})
@@ -271,13 +266,12 @@ func Test_OnDelLimit_onOk(t *testing.T) {
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
-	ctx := context.Background()
 	model := New(sender, expenseRepo, rateRepository, userRepo, txManager)
 
-	txManager.EXPECT().WithinTransaction(ctx, gomock.Not(gomock.Nil())).Return(nil)
+	txManager.EXPECT().WithinTransaction(gomock.Any(), gomock.Not(gomock.Nil())).Return(nil)
 	sender.EXPECT().SendMessage("Лимит сброшен", nil, int64(123))
 
-	_, err := model.IncomingMessage(ctx, Message{
+	_, err := model.IncomingMessage(context.Background(), Message{
 		Text:   "/dellimit",
 		UserID: 123,
 	})

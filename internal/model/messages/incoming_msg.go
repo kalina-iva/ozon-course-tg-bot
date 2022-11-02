@@ -10,7 +10,7 @@ import (
 
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
-	"github.com/uber/jaeger-client-go"
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/helper/tracelog"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages/entity"
 	"go.uber.org/zap"
 )
@@ -84,9 +84,7 @@ type CallbackQuery struct {
 func (m *Model) IncomingMessage(ctx context.Context, msg Message) (string, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "start processing message")
 	defer span.Finish()
-	if spanContext, ok := span.Context().(jaeger.SpanContext); ok {
-		zap.L().Info("start tracing incoming message", zap.String("id", spanContext.TraceID().String()))
-	}
+	tracelog.Info(span, "start tracing incoming message")
 
 	var text string
 	var cases []string

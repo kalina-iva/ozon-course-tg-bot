@@ -50,7 +50,6 @@ func main() {
 	if err != nil {
 		zap.L().Fatal("tg client init failed", zap.Error(err))
 	}
-	defer tgClient.Close()
 
 	conn, err := pgx.Connect(context.Background(), cfg.DatabaseDSN())
 	if err != nil {
@@ -74,6 +73,7 @@ func main() {
 
 	msgModel := messages.New(tgClient, expenseRepo, exchangeRateRepo, userRepo, txManager)
 	go tgClient.ListenUpdates(ctx, msgModel)
+	defer tgClient.Close()
 
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
