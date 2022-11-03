@@ -31,7 +31,7 @@ func (t *TxManager) WithinTransaction(ctx context.Context, tFunc func(ctx contex
 		if errRollback := tx.Rollback(ctx); errRollback != nil {
 			zap.L().Error("rollback transaction failed", zap.Error(errRollback))
 		}
-		return err
+		return errors.Wrap(err, "cannot exec tFunc")
 	}
 	if errCommit := tx.Commit(ctx); errCommit != nil {
 		zap.L().Error("commit transaction failed", zap.Error(errCommit))
