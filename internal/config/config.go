@@ -23,11 +23,16 @@ type metrics struct {
 	ServerAddress string `yaml:"server_address"`
 }
 
+type service struct {
+	Name string `yaml:"name"`
+	Env  string `yaml:"env"`
+}
+
 type config struct {
 	Token        string       `yaml:"token"`
 	ExchangeRate exchangeRate `yaml:"exchange_rate"`
 	DatabaseDSN  string       `yaml:"db_dsn"`
-	ServiceName  string       `yaml:"service_name"`
+	Service      service      `yaml:"service"`
 	Tracing      tracing      `yaml:"tracing"`
 	Metrics      metrics      `yaml:"metrics"`
 }
@@ -73,7 +78,11 @@ func (s *Service) DatabaseDSN() string {
 }
 
 func (s *Service) ServiceName() string {
-	return s.config.ServiceName
+	return s.config.Service.Name
+}
+
+func (s *Service) ServiceEnv() string {
+	return s.config.Service.Env
 }
 
 func (s *Service) SamplingRatio() float64 {

@@ -5,6 +5,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/pkg/errors"
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/logger"
 	"go.uber.org/zap"
 )
 
@@ -29,14 +30,14 @@ func (t *TxManager) WithinTransaction(ctx context.Context, tFunc func(ctx contex
 	err = tFunc(injectTx(ctx, tx))
 	if err != nil {
 		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			zap.L().Error("rollback transaction failed", zap.Error(errRollback))
+			logger.Error("rollback transaction failed", zap.Error(errRollback))
 		}
 		return errors.Wrap(err, "cannot exec tFunc")
 	}
 	if errCommit := tx.Commit(ctx); errCommit != nil {
-		zap.L().Error("commit transaction failed", zap.Error(errCommit))
+		logger.Error("commit transaction failed", zap.Error(errCommit))
 		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			zap.L().Error("rollback transaction failed", zap.Error(errRollback))
+			logger.Error("rollback transaction failed", zap.Error(errRollback))
 		}
 	}
 	return nil

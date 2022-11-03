@@ -13,7 +13,7 @@ import (
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/repository/database"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/service/exchangeRate"
-	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/logging"
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/logger"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/metrics"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/tracing"
 	"go.uber.org/zap"
@@ -21,39 +21,40 @@ import (
 
 func main() {
 	ctx := context.Background()
-	err := logging.InitLogger()
-	if err != nil {
-		log.Fatal("logger init failed:", err)
-	}
-	defer logging.Close()
 
 	cfg, err := config.New()
 	if err != nil {
-		zap.L().Fatal("config init failed", zap.Error(err))
+		log.Fatal("config init failed:", err)
 	}
+
+	err = logger.InitLogger(cfg.ServiceEnv())
+	if err != nil {
+		log.Fatal("logger init failed:", err)
+	}
+	defer logger.Close()
 
 	err = tracing.InitTracing(cfg.ServiceName(), cfg.SamplingRatio())
 	if err != nil {
-		zap.L().Fatal("tracing init failed", zap.Error(err))
+		logger.Fatal("tracing init failed", zap.Error(err))
 	}
 	defer tracing.Close()
 
 	go func() {
 		err = metrics.InitMetrics(cfg.MetricsServerAddress())
 		if err != nil {
-			zap.L().Fatal("metrics init failed", zap.Error(err))
+			logger.Fatal("metrics init failed", zap.Error(err))
 		}
 	}()
 	defer metrics.Close()
 
 	tgClient, err := tg.New(cfg)
 	if err != nil {
-		zap.L().Fatal("tg client init failed", zap.Error(err))
+		logger.Fatal("tg client init failed", zap.Error(err))
 	}
 
 	conn, err := pgx.Connect(context.Background(), cfg.DatabaseDSN())
 	if err != nil {
-		zap.L().Fatal("cannot connect to database", zap.Error(err))
+		logger.Fatal("cannot connect to database", zap.Error(err))
 	}
 	defer conn.Close(ctx)
 
