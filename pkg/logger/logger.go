@@ -26,17 +26,17 @@ func Close() error {
 }
 
 func Info(message string, fields ...zap.Field) {
-	logger.Info(message, fields...)
+	zap.L().Info(message, fields...)
 }
 
 func Debug(message string, fields ...zap.Field) {
-	logger.Debug(message, fields...)
+	zap.L().Debug(message, fields...)
 }
 
 func Error(message string, fields ...zap.Field) {
-	logger.Error(message, fields...)
+	zap.L().Error(message, fields...)
 }
 
 func Fatal(message string, fields ...zap.Field) {
-	logger.Fatal(message, fields...)
+	zap.L().Fatal(message, fields...)
 }
