@@ -61,18 +61,20 @@ func (c *ExpenseCache) Report(ctx context.Context, userID int64, period time.Tim
 }
 
 func getReportKey(userID int64, period time.Time) string {
+	const base = 10
 	var sb strings.Builder
 	sb.WriteString("report")
-	sb.WriteString(strconv.FormatInt(userID, 10))
+	sb.WriteString(strconv.FormatInt(userID, base))
 	sb.WriteString(":")
 	sb.WriteString(period.Format("01/02/2006"))
 	return sb.String()
 }
 
 func getReportTag(userID int64) string {
+	const base = 10
 	var sb strings.Builder
 	sb.WriteString("report")
-	sb.WriteString(strconv.FormatInt(userID, 10))
+	sb.WriteString(strconv.FormatInt(userID, base))
 	return sb.String()
 }
 
