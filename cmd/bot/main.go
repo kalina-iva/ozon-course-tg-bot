@@ -7,10 +7,12 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/jackc/pgx/v5"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/clients/tg"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/config"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages"
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/repository/cache"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/repository/database"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/service/exchangeRate"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/logger"
@@ -47,21 +49,23 @@ func main() {
 	}()
 	defer metrics.Close()
 
-	tgClient, err := tg.New(cfg)
-	if err != nil {
-		logger.Fatal("tg client init failed", zap.Error(err))
-	}
-
 	conn, err := pgx.Connect(context.Background(), cfg.DatabaseDSN())
 	if err != nil {
 		logger.Fatal("cannot connect to database", zap.Error(err))
 	}
 	defer conn.Close(ctx)
 
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: cfg.RedisHost(),
+	})
+
 	expenseRepo := database.NewExpenseDb(conn)
 	exchangeRateRepo := database.NewRateDb(conn)
 	userRepo := database.NewUserDb(conn)
 	txManager := database.NewTxManager(conn)
+
+	cacheManager := cache.NewManager(redisClient)
+	ExpenseCache := cache.NewExpenseCache(expenseRepo, cacheManager)
 
 	exchangeRateService := exchangeRate.New(
 		exchangeRateRepo,
@@ -72,7 +76,12 @@ func main() {
 	exchangeRateService.Run()
 	defer exchangeRateService.Close()
 
-	msgModel := messages.New(tgClient, expenseRepo, exchangeRateRepo, userRepo, txManager)
+	tgClient, err := tg.New(cfg)
+	if err != nil {
+		logger.Fatal("tg client init failed", zap.Error(err))
+	}
+
+	msgModel := messages.New(tgClient, ExpenseCache, exchangeRateRepo, userRepo, txManager)
 	go tgClient.ListenUpdates(ctx, msgModel)
 	defer tgClient.Close()
 

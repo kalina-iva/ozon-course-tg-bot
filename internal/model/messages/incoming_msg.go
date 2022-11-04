@@ -27,7 +27,7 @@ type exchangeRateRepository interface {
 	GetRate(ctx context.Context, code string) (float64, error)
 }
 
-type expenseRepository interface {
+type ExpenseRepository interface {
 	New(ctx context.Context, userID int64, category string, amount uint64, date time.Time) error
 	Report(ctx context.Context, userID int64, period time.Time) ([]*entity.Report, error)
 	GetAmountByPeriod(ctx context.Context, userID int64, period time.Time) (uint64, error)
@@ -50,7 +50,7 @@ type messageSender interface {
 
 type Model struct {
 	tgClient         messageSender
-	expenseRepo      expenseRepository
+	expenseRepo      ExpenseRepository
 	exchangeRateRepo exchangeRateRepository
 	userRepo         userRepository
 	txManager        txManager
@@ -58,7 +58,7 @@ type Model struct {
 
 func New(
 	tgClient messageSender,
-	expenseRepo expenseRepository,
+	expenseRepo ExpenseRepository,
 	exchangeRateRepo exchangeRateRepository,
 	userRepo userRepository,
 	txManager txManager,
@@ -276,7 +276,6 @@ func (m *Model) reportHandler(ctx context.Context, userID int64, params []string
 		return canNotGetRate
 	}
 
-	var sb strings.Builder
 	currencyShort := getCurrencyShortByCode(code)
 	report, err := m.expenseRepo.Report(ctx, userID, period)
 	if err != nil {
@@ -284,6 +283,7 @@ func (m *Model) reportHandler(ctx context.Context, userID int64, params []string
 		return canNotCreateReport
 	}
 
+	var sb strings.Builder
 	for _, item := range report {
 		amount := float64(item.AmountInKopecks) * rate
 		sb.WriteString(item.Category)
