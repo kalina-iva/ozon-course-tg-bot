@@ -2,10 +2,11 @@ package database
 
 import (
 	"context"
-	"log"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/pkg/errors"
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/logger"
+	"go.uber.org/zap"
 )
 
 type transactionKey struct{}
@@ -29,12 +30,15 @@ func (t *TxManager) WithinTransaction(ctx context.Context, tFunc func(ctx contex
 	err = tFunc(injectTx(ctx, tx))
 	if err != nil {
 		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			log.Println("rollback transaction:", errRollback)
+			logger.Error("rollback transaction failed", zap.Error(errRollback))
 		}
-		return err
+		return errors.Wrap(err, "cannot exec tFunc")
 	}
 	if errCommit := tx.Commit(ctx); errCommit != nil {
-		log.Println("commit transaction:", errCommit)
+		logger.Error("commit transaction failed", zap.Error(errCommit))
+		if errRollback := tx.Rollback(ctx); errRollback != nil {
+			logger.Error("rollback transaction failed", zap.Error(errRollback))
+		}
 	}
 	return nil
 }

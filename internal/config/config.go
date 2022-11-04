@@ -15,10 +15,26 @@ type exchangeRate struct {
 	RefreshRateInMin int64  `yaml:"refresh_rate_in_min"`
 }
 
+type tracing struct {
+	SamplingRatio float64 `yaml:"sampling_ratio"`
+}
+
+type metrics struct {
+	ServerAddress string `yaml:"server_address"`
+}
+
+type service struct {
+	Name string `yaml:"name"`
+	Env  string `yaml:"env"`
+}
+
 type config struct {
 	Token        string       `yaml:"token"`
 	ExchangeRate exchangeRate `yaml:"exchange_rate"`
 	DatabaseDSN  string       `yaml:"db_dsn"`
+	Service      service      `yaml:"service"`
+	Tracing      tracing      `yaml:"tracing"`
+	Metrics      metrics      `yaml:"metrics"`
 }
 
 type Service struct {
@@ -59,4 +75,20 @@ func (s *Service) ExchangeRateRefreshRateInMin() int64 {
 
 func (s *Service) DatabaseDSN() string {
 	return s.config.DatabaseDSN
+}
+
+func (s *Service) ServiceName() string {
+	return s.config.Service.Name
+}
+
+func (s *Service) ServiceEnv() string {
+	return s.config.Service.Env
+}
+
+func (s *Service) SamplingRatio() float64 {
+	return s.config.Tracing.SamplingRatio
+}
+
+func (s *Service) MetricsServerAddress() string {
+	return s.config.Metrics.ServerAddress
 }

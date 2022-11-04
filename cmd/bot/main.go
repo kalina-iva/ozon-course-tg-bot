@@ -13,6 +13,10 @@ import (
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/repository/database"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/service/exchangeRate"
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/logger"
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/metrics"
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/tracing"
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -23,14 +27,34 @@ func main() {
 		log.Fatal("config init failed:", err)
 	}
 
+	err = logger.InitLogger(cfg.ServiceEnv())
+	if err != nil {
+		log.Fatal("logger init failed:", err)
+	}
+	defer logger.Close()
+
+	err = tracing.InitTracing(cfg.ServiceName(), cfg.SamplingRatio())
+	if err != nil {
+		logger.Fatal("tracing init failed", zap.Error(err))
+	}
+	defer tracing.Close()
+
+	go func() {
+		err = metrics.InitMetrics(cfg.MetricsServerAddress())
+		if err != nil {
+			logger.Fatal("metrics init failed", zap.Error(err))
+		}
+	}()
+	defer metrics.Close()
+
 	tgClient, err := tg.New(cfg)
 	if err != nil {
-		log.Fatal("tg client init failed:", err)
+		logger.Fatal("tg client init failed", zap.Error(err))
 	}
 
 	conn, err := pgx.Connect(context.Background(), cfg.DatabaseDSN())
 	if err != nil {
-		log.Fatal("cannot connect to database:", err)
+		logger.Fatal("cannot connect to database", zap.Error(err))
 	}
 	defer conn.Close(ctx)
 
@@ -46,14 +70,13 @@ func main() {
 		cfg.ExchangeRateRefreshRateInMin(),
 	)
 	exchangeRateService.Run()
+	defer exchangeRateService.Close()
 
-	msgModel := messages.New(ctx, tgClient, expenseRepo, exchangeRateRepo, userRepo, txManager)
-	go tgClient.ListenUpdates(msgModel)
+	msgModel := messages.New(tgClient, expenseRepo, exchangeRateRepo, userRepo, txManager)
+	go tgClient.ListenUpdates(ctx, msgModel)
+	defer tgClient.Close()
 
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	<-done
-
-	exchangeRateService.Close()
-	tgClient.Close()
 }
