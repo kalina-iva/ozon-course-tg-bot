@@ -20,7 +20,7 @@ func NewExpenseDb(conn *pgx.Conn) *ExpenseDB {
 	}
 }
 
-func (e *ExpenseDB) New(ctx context.Context, userID int64, category string, amount uint64, date time.Time) error {
+func (e *ExpenseDB) Create(ctx context.Context, userID int64, category string, amount uint64, date time.Time) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "create expense in db")
 	defer span.Finish()
 

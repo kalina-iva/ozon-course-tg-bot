@@ -13,7 +13,7 @@ func Test_OnStartCommand_ShouldAnswerWithIntroMessage(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	sender := mocks.NewMockmessageSender(ctrl)
-	expenseRepo := mocks.NewMockexpenseRepository(ctrl)
+	expenseRepo := mocks.NewMockExpenseRepository(ctrl)
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
@@ -37,7 +37,7 @@ func Test_OnUnknownCommand_ShouldAnswerWithHelpMessage(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	sender := mocks.NewMockmessageSender(ctrl)
-	expenseRepo := mocks.NewMockexpenseRepository(ctrl)
+	expenseRepo := mocks.NewMockExpenseRepository(ctrl)
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
@@ -57,7 +57,7 @@ func Test_OnNewExpenseCommand_WrongAmount(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	sender := mocks.NewMockmessageSender(ctrl)
-	expenseRepo := mocks.NewMockexpenseRepository(ctrl)
+	expenseRepo := mocks.NewMockExpenseRepository(ctrl)
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
@@ -77,7 +77,7 @@ func Test_OnNewExpenseCommand_incorrectDate(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	sender := mocks.NewMockmessageSender(ctrl)
-	expenseRepo := mocks.NewMockexpenseRepository(ctrl)
+	expenseRepo := mocks.NewMockExpenseRepository(ctrl)
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
@@ -97,7 +97,7 @@ func Test_OnNewExpenseCommand_onOk(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	sender := mocks.NewMockmessageSender(ctrl)
-	expenseRepo := mocks.NewMockexpenseRepository(ctrl)
+	expenseRepo := mocks.NewMockExpenseRepository(ctrl)
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
@@ -118,7 +118,7 @@ func Test_OnNewExpenseCommand_onLimitExceeded(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	sender := mocks.NewMockmessageSender(ctrl)
-	expenseRepo := mocks.NewMockexpenseRepository(ctrl)
+	expenseRepo := mocks.NewMockExpenseRepository(ctrl)
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
@@ -139,7 +139,7 @@ func Test_OnReportCommand_withoutPeriod(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	sender := mocks.NewMockmessageSender(ctrl)
-	expenseRepo := mocks.NewMockexpenseRepository(ctrl)
+	expenseRepo := mocks.NewMockExpenseRepository(ctrl)
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
@@ -159,7 +159,7 @@ func Test_OnReportCommand_wrongPeriod(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	sender := mocks.NewMockmessageSender(ctrl)
-	expenseRepo := mocks.NewMockexpenseRepository(ctrl)
+	expenseRepo := mocks.NewMockExpenseRepository(ctrl)
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
@@ -179,7 +179,7 @@ func Test_OnSetCurrency_onOk(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	sender := mocks.NewMockmessageSender(ctrl)
-	expenseRepo := mocks.NewMockexpenseRepository(ctrl)
+	expenseRepo := mocks.NewMockExpenseRepository(ctrl)
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
@@ -199,7 +199,7 @@ func Test_OnCallbackSetCurrency_onOk(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	sender := mocks.NewMockmessageSender(ctrl)
-	expenseRepo := mocks.NewMockexpenseRepository(ctrl)
+	expenseRepo := mocks.NewMockExpenseRepository(ctrl)
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
@@ -220,7 +220,7 @@ func Test_OnCallbackSetCurrency_onUserNotFound(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	sender := mocks.NewMockmessageSender(ctrl)
-	expenseRepo := mocks.NewMockexpenseRepository(ctrl)
+	expenseRepo := mocks.NewMockExpenseRepository(ctrl)
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
@@ -241,7 +241,7 @@ func Test_OnSetLimit_onOk(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	sender := mocks.NewMockmessageSender(ctrl)
-	expenseRepo := mocks.NewMockexpenseRepository(ctrl)
+	expenseRepo := mocks.NewMockExpenseRepository(ctrl)
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
@@ -262,7 +262,7 @@ func Test_OnDelLimit_onOk(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	sender := mocks.NewMockmessageSender(ctrl)
-	expenseRepo := mocks.NewMockexpenseRepository(ctrl)
+	expenseRepo := mocks.NewMockExpenseRepository(ctrl)
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)

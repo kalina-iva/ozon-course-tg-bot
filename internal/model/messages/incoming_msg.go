@@ -28,7 +28,7 @@ type exchangeRateRepository interface {
 }
 
 type ExpenseRepository interface {
-	New(ctx context.Context, userID int64, category string, amount uint64, date time.Time) error
+	Create(ctx context.Context, userID int64, category string, amount uint64, date time.Time) error
 	Report(ctx context.Context, userID int64, period time.Time) ([]*entity.Report, error)
 	GetAmountByPeriod(ctx context.Context, userID int64, period time.Time) (uint64, error)
 }
@@ -190,7 +190,7 @@ func (m *Model) newExpenseHandler(ctx context.Context, userID int64, params []st
 		if amount, err = m.convertAmountToRub(ctx, *user, parsedAmount); err != nil {
 			return err
 		}
-		if err = m.expenseRepo.New(ctx, userID, category, amount, date); err != nil {
+		if err = m.expenseRepo.Create(ctx, userID, category, amount, date); err != nil {
 			return err
 		}
 		return nil

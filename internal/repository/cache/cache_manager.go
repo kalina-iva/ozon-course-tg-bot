@@ -6,15 +6,19 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/pkg/errors"
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/logger"
+	"go.uber.org/zap"
 )
 
 type Manager struct {
 	client *redis.Client
 }
 
-func NewManager(client *redis.Client) *Manager {
+func NewManager(host string) *Manager {
 	return &Manager{
-		client: client,
+		client: redis.NewClient(&redis.Options{
+			Addr: host,
+		}),
 	}
 }
 
@@ -38,7 +42,10 @@ func (m *Manager) Invalidate(ctx context.Context, tags []string) {
 		keys = append(keys, tag)
 		keys = append(keys, k...)
 	}
-	m.client.Del(ctx, keys...)
+	_, err := m.client.Del(ctx, keys...).Result()
+	if err != nil {
+		logger.Error("cannot invalidate cache by tags", zap.Error(err))
+	}
 }
 
 func (m *Manager) GetBytes(ctx context.Context, key string) ([]byte, error) {

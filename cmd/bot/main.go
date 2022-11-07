@@ -7,7 +7,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/go-redis/redis/v8"
 	"github.com/jackc/pgx/v5"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/clients/tg"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/config"
@@ -55,16 +54,12 @@ func main() {
 	}
 	defer conn.Close(ctx)
 
-	redisClient := redis.NewClient(&redis.Options{
-		Addr: cfg.RedisHost(),
-	})
-
 	expenseRepo := database.NewExpenseDb(conn)
 	exchangeRateRepo := database.NewRateDb(conn)
 	userRepo := database.NewUserDb(conn)
 	txManager := database.NewTxManager(conn)
 
-	cacheManager := cache.NewManager(redisClient)
+	cacheManager := cache.NewManager(cfg.RedisHost())
 	ExpenseCache := cache.NewExpenseCache(expenseRepo, cacheManager)
 
 	exchangeRateService := exchangeRate.New(

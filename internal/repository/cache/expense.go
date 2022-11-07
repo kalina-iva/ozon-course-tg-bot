@@ -16,20 +16,26 @@ import (
 
 const expiration = 24 * time.Hour
 
-type ExpenseCache struct {
-	db      messages.ExpenseRepository
-	manager *Manager
+type cacheManager interface {
+	Set(ctx context.Context, key string, value interface{}, tags []string, expiration time.Duration) error
+	Invalidate(ctx context.Context, tags []string)
+	GetBytes(ctx context.Context, key string) ([]byte, error)
 }
 
-func NewExpenseCache(db messages.ExpenseRepository, manager *Manager) *ExpenseCache {
+type ExpenseCache struct {
+	db      messages.ExpenseRepository
+	manager cacheManager
+}
+
+func NewExpenseCache(db messages.ExpenseRepository, manager cacheManager) *ExpenseCache {
 	return &ExpenseCache{
 		db:      db,
 		manager: manager,
 	}
 }
 
-func (c *ExpenseCache) New(ctx context.Context, userID int64, category string, amount uint64, date time.Time) error {
-	if err := c.db.New(ctx, userID, category, amount, date); err != nil {
+func (c *ExpenseCache) Create(ctx context.Context, userID int64, category string, amount uint64, date time.Time) error {
+	if err := c.db.Create(ctx, userID, category, amount, date); err != nil {
 		return errors.Wrap(err, "cannot create expense in db")
 	}
 	tag := getReportTag(userID)
@@ -66,7 +72,7 @@ func getReportKey(userID int64, period time.Time) string {
 	sb.WriteString("report")
 	sb.WriteString(strconv.FormatInt(userID, base))
 	sb.WriteString(":")
-	sb.WriteString(period.Format("01/02/2006"))
+	sb.WriteString(period.Format("02/01/2006"))
 	return sb.String()
 }
 
