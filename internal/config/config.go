@@ -28,13 +28,22 @@ type service struct {
 	Env  string `yaml:"env"`
 }
 
+type database struct {
+	DSN string `yaml:"DSN"`
+}
+
+type redis struct {
+	Host string `yaml:"host"`
+}
+
 type config struct {
 	Token        string       `yaml:"token"`
 	ExchangeRate exchangeRate `yaml:"exchange_rate"`
-	DatabaseDSN  string       `yaml:"db_dsn"`
+	Database     database     `yaml:"db"`
 	Service      service      `yaml:"service"`
 	Tracing      tracing      `yaml:"tracing"`
 	Metrics      metrics      `yaml:"metrics"`
+	Redis        redis        `yaml:"redis"`
 }
 
 type Service struct {
@@ -74,7 +83,7 @@ func (s *Service) ExchangeRateRefreshRateInMin() int64 {
 }
 
 func (s *Service) DatabaseDSN() string {
-	return s.config.DatabaseDSN
+	return s.config.Database.DSN
 }
 
 func (s *Service) ServiceName() string {
@@ -91,4 +100,8 @@ func (s *Service) SamplingRatio() float64 {
 
 func (s *Service) MetricsServerAddress() string {
 	return s.config.Metrics.ServerAddress
+}
+
+func (s *Service) RedisHost() string {
+	return s.config.Redis.Host
 }
