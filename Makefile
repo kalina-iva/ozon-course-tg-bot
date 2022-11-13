@@ -18,6 +18,9 @@ test:
 run:
 	go run ${PACKAGE}
 
+run2:
+	go run gitlab.ozon.dev/mary.kalina/telegram-bot/cmd/report_builder
+
 generate: install-mockgen
 	${MOCKGEN} -source=internal/model/messages/incoming_msg.go -destination=internal/mocks/messages/messages_mocks.go
 	${MOCKGEN} -source=internal/repository/cache/expense.go -destination=internal/mocks/cache/cache_mocks.go

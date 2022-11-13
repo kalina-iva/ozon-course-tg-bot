@@ -16,7 +16,6 @@ const (
 	invalidPeriod         = "Некорректный период"
 	chooseCurrency        = "Выберите валюту"
 	currencySaved         = "Валюта установлена"
-	canNotGetRate         = "Не могу получить курс валют"
 	canNotSaveCurrency    = "Произошла ошибка при установлении валюты"
 	limitSaved            = "Лимит установлен"
 	canNotSaveLimit       = "Возникла ошибка при изменении лимита"
@@ -25,5 +24,5 @@ const (
 	canNotCreateReport    = "Произошла ошибка при формировании отчета"
 	limitExceeded         = "Превышен лимит"
 	userNotFound          = "Такой пользователь не существует"
-	noDataForReport       = "Отсутствуют расходы за данный период"
+	reportIsGenerated     = "Отчет будет готов в течение нескольких минут"
 )

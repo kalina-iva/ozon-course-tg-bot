@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+option go_package = "gitlab.ozon.dev/mary.kalina/telegram-bot/api";
+
+package report;
+
+service Report {
+  rpc sendReport (ReportRequest) returns (ReportReply) {}
+}
+
+message ReportRequest {
+  int64 userID = 1;
+  string report = 2;
+}
+
+message ReportReply {
+  string message = 1;
+}
