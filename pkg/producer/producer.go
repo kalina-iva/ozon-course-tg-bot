@@ -1,6 +1,7 @@
 package producer
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/Shopify/sarama"
@@ -9,7 +10,12 @@ import (
 
 const backoffMillisecond = 250
 
-func NewSyncProducer(brokerList []string) (sarama.SyncProducer, error) {
+type Producer struct {
+	syncProducer sarama.SyncProducer
+	reportTopic  string
+}
+
+func NewSyncProducer(brokerList []string, reportTopic string) (*Producer, error) {
 	config := sarama.NewConfig()
 	config.Version = sarama.V2_8_0_0
 	config.Producer.RequiredAcks = sarama.WaitForAll
@@ -22,10 +28,25 @@ func NewSyncProducer(brokerList []string) (sarama.SyncProducer, error) {
 	config.Producer.Return.Successes = true
 	_ = config.Producer.Partitioner
 
-	producer, err := sarama.NewSyncProducer(brokerList, config)
+	p, err := sarama.NewSyncProducer(brokerList, config)
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot start Sarama producer")
+		return nil, errors.Wrap(err, "cannot start Sarama syncProducer")
 	}
 
-	return producer, nil
+	return &Producer{
+		syncProducer: p,
+		reportTopic:  reportTopic,
+	}, nil
+}
+
+func (p *Producer) SendReportMessage(userID int64, msg []byte) error {
+	_, _, err := p.syncProducer.SendMessage(&sarama.ProducerMessage{
+		Topic: p.reportTopic,
+		Key:   sarama.StringEncoder(fmt.Sprintf("report%d", userID)),
+		Value: sarama.StringEncoder(msg),
+	})
+	if err != nil {
+		return errors.Wrap(err, "cannot produce report message")
+	}
+	return nil
 }

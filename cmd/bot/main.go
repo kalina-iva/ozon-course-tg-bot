@@ -78,20 +78,12 @@ func main() {
 		logger.Fatal("tg client init failed", zap.Error(err))
 	}
 
-	syncProducer, err := producer.NewSyncProducer(cfg.Kafka().BrokerList)
+	syncProducer, err := producer.NewSyncProducer(cfg.Kafka().BrokerList, cfg.Kafka().Report.Topic)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	msgModel := messages.New(
-		tgClient,
-		ExpenseCache,
-		exchangeRateRepo,
-		userRepo,
-		txManager,
-		syncProducer,
-		cfg.Kafka().Report.Topic,
-	)
+	msgModel := messages.New(tgClient, ExpenseCache, exchangeRateRepo, userRepo, txManager, syncProducer)
 
 	go func() {
 		err = report.NewReportServer(msgModel, cfg.ReportServerAddress())

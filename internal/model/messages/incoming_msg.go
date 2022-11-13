@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Shopify/sarama"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/helper/tracelog"
@@ -46,6 +45,10 @@ type txManager interface {
 	WithinTransaction(context.Context, func(ctx context.Context) error) error
 }
 
+type reportProducer interface {
+	SendReportMessage(userID int64, msg []byte) error
+}
+
 type messageSender interface {
 	SendMessage(text string, cases []string, userID int64) error
 }
@@ -56,8 +59,7 @@ type Model struct {
 	exchangeRateRepo exchangeRateRepository
 	userRepo         userRepository
 	txManager        txManager
-	reportProducer   sarama.SyncProducer
-	reportTopic      string
+	reportProducer   reportProducer
 }
 
 func New(
@@ -66,8 +68,7 @@ func New(
 	exchangeRateRepo exchangeRateRepository,
 	userRepo userRepository,
 	txManager txManager,
-	producer sarama.SyncProducer,
-	reportTopic string,
+	producer reportProducer,
 ) *Model {
 	return &Model{
 		tgClient:         tgClient,
@@ -76,7 +77,6 @@ func New(
 		userRepo:         userRepo,
 		txManager:        txManager,
 		reportProducer:   producer,
-		reportTopic:      reportTopic,
 	}
 }
 
@@ -298,25 +298,20 @@ func (m *Model) sendToQueue(user *entity.User, period time.Time) error {
 		CurrencyCode string    `json:"currency_code"`
 	}
 
-	data := reportRequest{
+	msg, err := json.Marshal(reportRequest{
 		UserID:       user.ID,
 		Period:       period,
 		CurrencyCode: m.getCurrencyCode(*user),
-	}
-
-	decodedData, err := json.Marshal(data)
+	})
+	ch := string(msg)
+	fmt.Println(ch)
 	if err != nil {
 		return errors.Wrap(err, "cannot marshal report message")
 	}
 
-	_, _, err = m.reportProducer.SendMessage(&sarama.ProducerMessage{
-		Topic: m.reportTopic,
-		Key:   sarama.StringEncoder(fmt.Sprintf("report%d", user.ID)),
-		Value: sarama.StringEncoder(decodedData),
-	})
-
+	err = m.reportProducer.SendReportMessage(user.ID, msg)
 	if err != nil {
-		return errors.Wrap(err, "cannot produce report message")
+		return errors.Wrap(err, "cannot send report message to queue")
 	}
 	return nil
 }
