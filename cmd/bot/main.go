@@ -80,7 +80,7 @@ func main() {
 
 	syncProducer, err := producer.NewSyncProducer(cfg.Kafka().BrokerList, cfg.Kafka().Report.Topic)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal("sync producer init failed", zap.Error(err))
 	}
 
 	msgModel := messages.New(tgClient, ExpenseCache, exchangeRateRepo, userRepo, txManager, syncProducer)

@@ -13,6 +13,8 @@ import (
 	"go.uber.org/zap"
 )
 
+var consumerGroup sarama.ConsumerGroup
+
 type Consumer struct {
 	ctx          context.Context
 	generator    *report.Generator
@@ -31,10 +33,11 @@ func NewConsumerGroup(
 	config.Version = sarama.V2_5_0_0
 	config.Consumer.Offsets.Initial = sarama.OffsetOldest
 
-	consumerGroup, err := sarama.NewConsumerGroup(brokerList, groupID, config)
+	cg, err := sarama.NewConsumerGroup(brokerList, groupID, config)
 	if err != nil {
 		return errors.Wrap(err, "cannot start consumer group")
 	}
+	consumerGroup = cg
 
 	err = consumerGroup.Consume(ctx, []string{topic}, &Consumer{
 		ctx:          ctx,
@@ -45,6 +48,10 @@ func NewConsumerGroup(
 		return errors.Wrap(err, "consuming via handler")
 	}
 	return nil
+}
+
+func Close() error {
+	return consumerGroup.Close()
 }
 
 // Setup is run at the beginning of a new session, before ConsumeClaim.

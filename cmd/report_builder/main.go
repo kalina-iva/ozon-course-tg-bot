@@ -63,10 +63,11 @@ func main() {
 			generator,
 		)
 		if err != nil {
-			log.Fatal(err)
+			logger.Fatal("cannot init consumer group", zap.Error(err))
 		}
 	}()
 	logger.Info("consumer is starting")
+	defer consumer.Close()
 
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
