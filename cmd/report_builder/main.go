@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"syscall"
 
 	"github.com/jackc/pgx/v5"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/api"
@@ -19,8 +20,7 @@ import (
 )
 
 func main() {
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer cancel()
+	ctx := context.Background()
 
 	cfg, err := config.New()
 	if err != nil {
@@ -38,7 +38,6 @@ func main() {
 		logger.Fatal("did not connect", zap.Error(err))
 	}
 	defer conn.Close()
-	log.Printf("client is starting")
 
 	reportClient := api.NewReportClient(conn)
 
@@ -67,6 +66,9 @@ func main() {
 			log.Fatal(err)
 		}
 	}()
+	logger.Info("consumer is starting")
 
-	<-ctx.Done()
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	<-done
 }
