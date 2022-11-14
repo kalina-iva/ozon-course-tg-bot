@@ -3,7 +3,6 @@ package messages
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -51,6 +50,12 @@ type reportProducer interface {
 
 type messageSender interface {
 	SendMessage(text string, cases []string, userID int64) error
+}
+
+type reportRequest struct {
+	UserID       int64     `json:"user_id"`
+	Period       time.Time `json:"period"`
+	CurrencyCode string    `json:"currency_code"`
 }
 
 type Model struct {
@@ -292,19 +297,11 @@ func (m *Model) reportHandler(ctx context.Context, userID int64, params []string
 }
 
 func (m *Model) sendToQueue(user *entity.User, period time.Time) error {
-	type reportRequest struct {
-		UserID       int64     `json:"user_id"`
-		Period       time.Time `json:"period"`
-		CurrencyCode string    `json:"currency_code"`
-	}
-
 	msg, err := json.Marshal(reportRequest{
 		UserID:       user.ID,
 		Period:       period,
 		CurrencyCode: m.getCurrencyCode(*user),
 	})
-	ch := string(msg)
-	fmt.Println(ch)
 	if err != nil {
 		return errors.Wrap(err, "cannot marshal report message")
 	}

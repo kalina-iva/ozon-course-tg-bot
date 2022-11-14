@@ -3,11 +3,10 @@ package consumer
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"github.com/Shopify/sarama"
 	"github.com/pkg/errors"
-	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/api"
+	reportClient "gitlab.ozon.dev/mary.kalina/telegram-bot/internal/api/report"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/report"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/logger"
 	"go.uber.org/zap"
@@ -18,7 +17,7 @@ var consumerGroup sarama.ConsumerGroup
 type Consumer struct {
 	ctx          context.Context
 	generator    *report.Generator
-	reportClient api.ReportClient
+	reportClient reportClient.ReportClient
 }
 
 func NewConsumerGroup(
@@ -26,7 +25,7 @@ func NewConsumerGroup(
 	brokerList []string,
 	groupID string,
 	topic string,
-	reportClient api.ReportClient,
+	reportClient reportClient.ReportClient,
 	generator *report.Generator,
 ) error {
 	config := sarama.NewConfig()
@@ -56,13 +55,11 @@ func Close() error {
 
 // Setup is run at the beginning of a new session, before ConsumeClaim.
 func (c *Consumer) Setup(sarama.ConsumerGroupSession) error {
-	fmt.Println("c - setup")
 	return nil
 }
 
 // Cleanup is run at the end of a session, once all ConsumeClaim goroutines have exited.
 func (c *Consumer) Cleanup(sarama.ConsumerGroupSession) error {
-	fmt.Println("c - cleanup")
 	return nil
 }
 
@@ -77,7 +74,7 @@ func (c *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 		}
 
 		r := c.generator.GenerateReport(c.ctx, request)
-		_, err = c.reportClient.SendReport(c.ctx, &api.ReportRequest{
+		_, err = c.reportClient.SendReport(c.ctx, &reportClient.ReportRequest{
 			UserID: request.UserID,
 			Report: r,
 		})
