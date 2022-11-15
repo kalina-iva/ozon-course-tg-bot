@@ -8,7 +8,7 @@ import (
 	"syscall"
 
 	"github.com/jackc/pgx/v5"
-	reportClient "gitlab.ozon.dev/mary.kalina/telegram-bot/internal/api/report"
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/clients/grpcreport"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/config"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/consumer"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/report"
@@ -16,8 +16,6 @@ import (
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/repository/database"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/logger"
 	"go.uber.org/zap"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
@@ -34,13 +32,11 @@ func main() {
 	}
 	defer logger.Close()
 
-	conn, err := grpc.Dial(cfg.ReportServerAddress(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	rc, err := grpcreport.NewReportClient(cfg.ReportServerAddress())
 	if err != nil {
-		logger.Fatal("did not connect", zap.Error(err))
+		logger.Fatal("cannot create grpc report client", zap.Error(err))
 	}
-	defer conn.Close()
-
-	rc := reportClient.NewReportClient(conn)
+	defer grpcreport.Close()
 
 	databaseConn, err := pgx.Connect(ctx, cfg.DatabaseDSN())
 	if err != nil {
