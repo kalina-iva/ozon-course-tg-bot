@@ -8,15 +8,30 @@ import (
 	"syscall"
 
 	"github.com/jackc/pgx/v5"
-	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/clients/grpcreport"
+	"github.com/pkg/errors"
+	protoReport "gitlab.ozon.dev/mary.kalina/telegram-bot/internal/api/report"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/config"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/consumer"
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/helper/grpcconn"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/report"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/repository/cache"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/repository/database"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/logger"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 )
+
+var conn *grpc.ClientConn
+
+func newReportClient(serverAddr string) (protoReport.ReportClient, error) {
+	var err error
+	conn, err = grpcconn.NewClientConn(serverAddr)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot create report client connection")
+	}
+
+	return protoReport.NewReportClient(conn), nil
+}
 
 func main() {
 	ctx := context.Background()
@@ -32,11 +47,11 @@ func main() {
 	}
 	defer logger.Close()
 
-	rc, err := grpcreport.NewReportClient(cfg.ReportServerAddress())
+	reportClient, err := newReportClient(cfg.ReportServerAddress())
 	if err != nil {
 		logger.Fatal("cannot create grpc report client", zap.Error(err))
 	}
-	defer grpcreport.Close()
+	defer conn.Close()
 
 	databaseConn, err := pgx.Connect(ctx, cfg.DatabaseDSN())
 	if err != nil {
@@ -59,7 +74,7 @@ func main() {
 			cfg.Kafka().BrokerList,
 			cfg.Kafka().Report.ConsumerGroup,
 			cfg.Kafka().Report.Topic,
-			rc,
+			reportClient,
 			generator,
 		)
 		if err != nil {

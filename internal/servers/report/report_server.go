@@ -2,10 +2,10 @@ package report
 
 import (
 	"context"
-	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/api/report"
 	"net"
 
 	"github.com/pkg/errors"
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/api/report"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/logger"
 	"google.golang.org/grpc"
