@@ -2,7 +2,7 @@ package messages
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 	"math"
 	"strconv"
 	"strings"
@@ -44,8 +44,18 @@ type txManager interface {
 	WithinTransaction(context.Context, func(ctx context.Context) error) error
 }
 
+type reportProducer interface {
+	SendReportMessage(userID int64, msg []byte) error
+}
+
 type messageSender interface {
 	SendMessage(text string, cases []string, userID int64) error
+}
+
+type reportRequest struct {
+	UserID       int64     `json:"user_id"`
+	Period       time.Time `json:"period"`
+	CurrencyCode string    `json:"currency_code"`
 }
 
 type Model struct {
@@ -54,6 +64,7 @@ type Model struct {
 	exchangeRateRepo exchangeRateRepository
 	userRepo         userRepository
 	txManager        txManager
+	reportProducer   reportProducer
 }
 
 func New(
@@ -62,6 +73,7 @@ func New(
 	exchangeRateRepo exchangeRateRepository,
 	userRepo userRepository,
 	txManager txManager,
+	producer reportProducer,
 ) *Model {
 	return &Model{
 		tgClient:         tgClient,
@@ -69,6 +81,7 @@ func New(
 		exchangeRateRepo: exchangeRateRepo,
 		userRepo:         userRepo,
 		txManager:        txManager,
+		reportProducer:   producer,
 	}
 }
 
@@ -241,6 +254,10 @@ func (m *Model) convertAmountToRub(ctx context.Context, user entity.User, amount
 	return uint64(math.Round(amount * cntKopInRub)), nil
 }
 
+func (m *Model) SendReport(ctx context.Context, report string, userID int64) error {
+	return m.tgClient.SendMessage(report, nil, userID)
+}
+
 func (m *Model) reportHandler(ctx context.Context, userID int64, params []string) string {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "report handler")
 	defer span.Finish()
@@ -269,31 +286,31 @@ func (m *Model) reportHandler(ctx context.Context, userID int64, params []string
 		logger.Error("cannot get user", zap.Error(err))
 		return userNotFound
 	}
-	code := m.getCurrencyCode(*user)
-	rate, err := m.exchangeRateRepo.GetRate(ctx, code)
-	if err != nil {
-		logger.Error("cannot get rate from expenseRepo", zap.Error(err))
-		return canNotGetRate
-	}
 
-	currencyShort := getCurrencyShortByCode(code)
-	report, err := m.expenseRepo.Report(ctx, userID, period)
+	err = m.sendToQueue(user, period)
 	if err != nil {
-		logger.Error("cannot get report", zap.Error(err))
+		logger.Error("cannot send message to report queue", zap.Error(err))
 		return canNotCreateReport
 	}
 
-	var sb strings.Builder
-	for _, item := range report {
-		amount := float64(item.AmountInKopecks) * rate
-		sb.WriteString(item.Category)
-		sb.WriteString(fmt.Sprintf(": %.2f %v\n", amount/cntKopInRub, currencyShort))
+	return reportIsGenerated
+}
+
+func (m *Model) sendToQueue(user *entity.User, period time.Time) error {
+	msg, err := json.Marshal(reportRequest{
+		UserID:       user.ID,
+		Period:       period,
+		CurrencyCode: m.getCurrencyCode(*user),
+	})
+	if err != nil {
+		return errors.Wrap(err, "cannot marshal report message")
 	}
-	if sb.Len() == 0 {
-		logger.Info("no data for report")
-		return noDataForReport
+
+	err = m.reportProducer.SendReportMessage(user.ID, msg)
+	if err != nil {
+		return errors.Wrap(err, "cannot send report message to queue")
 	}
-	return sb.String()
+	return nil
 }
 
 func (m *Model) getCurrencyCode(user entity.User) string {
@@ -301,20 +318,6 @@ func (m *Model) getCurrencyCode(user entity.User) string {
 		return *user.CurrencyCode
 	}
 	return DefaultCurrencyCode
-}
-
-func getCurrencyShortByCode(code string) (short string) {
-	switch code {
-	case "RUB":
-		short = "₽"
-	case "USD":
-		short = "＄"
-	case "EUR":
-		short = "€"
-	case "CNY":
-		short = "元"
-	}
-	return
 }
 
 func (m *Model) limitHandler(ctx context.Context, userID int64, params []string) string {

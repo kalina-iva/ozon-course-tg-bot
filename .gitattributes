@@ -1,2 +1,3 @@
 **/mocks/** -diff
 **/mock/** -diff
+*.pb.go -diff

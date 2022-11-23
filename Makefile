@@ -18,8 +18,11 @@ test:
 run:
 	go run ${PACKAGE}
 
+run2:
+	go run gitlab.ozon.dev/mary.kalina/telegram-bot/cmd/report_builder
+
 generate: install-mockgen
-	${MOCKGEN} -source=internal/model/messages/incoming_msg.go -destination=internal/mocks/messages/messages_mocks.go
+	${MOCKGEN} -source=internal/model/report/generator.go -destination=internal/mocks/report/report_mocks.go
 	${MOCKGEN} -source=internal/repository/cache/expense.go -destination=internal/mocks/cache/cache_mocks.go
 
 lint: install-lint
@@ -51,3 +54,9 @@ install-smartimports: bindir
 
 docker-run:
 	sudo docker compose up
+
+pb:
+	cd internal/api/report && \
+	protoc --go_out=. --go_opt=paths=source_relative \
+        --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+        report.proto

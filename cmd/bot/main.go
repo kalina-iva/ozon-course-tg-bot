@@ -13,9 +13,11 @@ import (
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/model/messages"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/repository/cache"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/repository/database"
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/servers/report"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/internal/service/exchangeRate"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/logger"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/metrics"
+	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/producer"
 	"gitlab.ozon.dev/mary.kalina/telegram-bot/pkg/tracing"
 	"go.uber.org/zap"
 )
@@ -76,7 +78,20 @@ func main() {
 		logger.Fatal("tg client init failed", zap.Error(err))
 	}
 
-	msgModel := messages.New(tgClient, ExpenseCache, exchangeRateRepo, userRepo, txManager)
+	syncProducer, err := producer.NewSyncProducer(cfg.Kafka().BrokerList, cfg.Kafka().Report.Topic)
+	if err != nil {
+		logger.Fatal("sync producer init failed", zap.Error(err))
+	}
+
+	msgModel := messages.New(tgClient, ExpenseCache, exchangeRateRepo, userRepo, txManager, syncProducer)
+
+	go func() {
+		err = report.NewReportServer(msgModel, cfg.ReportServerAddress())
+		if err != nil {
+			logger.Fatal("report server init failed", zap.Error(err))
+		}
+	}()
+
 	go tgClient.ListenUpdates(ctx, msgModel)
 	defer tgClient.Close()
 

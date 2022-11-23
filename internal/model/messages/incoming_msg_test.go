@@ -17,7 +17,8 @@ func Test_OnStartCommand_ShouldAnswerWithIntroMessage(t *testing.T) {
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
-	model := New(sender, expenseRepo, rateRepository, userRepo, txManager)
+	producer := mocks.NewMockreportProducer(ctrl)
+	model := New(sender, expenseRepo, rateRepository, userRepo, txManager, producer)
 
 	sender.EXPECT().SendMessage(`Привет! Это дневник расходов.
 Описание команд:
@@ -41,7 +42,8 @@ func Test_OnUnknownCommand_ShouldAnswerWithHelpMessage(t *testing.T) {
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
-	model := New(sender, expenseRepo, rateRepository, userRepo, txManager)
+	producer := mocks.NewMockreportProducer(ctrl)
+	model := New(sender, expenseRepo, rateRepository, userRepo, txManager, producer)
 
 	sender.EXPECT().SendMessage("Неизвестная команда", nil, int64(123))
 
@@ -61,7 +63,8 @@ func Test_OnNewExpenseCommand_WrongAmount(t *testing.T) {
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
-	model := New(sender, expenseRepo, rateRepository, userRepo, txManager)
+	producer := mocks.NewMockreportProducer(ctrl)
+	model := New(sender, expenseRepo, rateRepository, userRepo, txManager, producer)
 
 	sender.EXPECT().SendMessage("Некорректная сумма расхода", nil, int64(123))
 
@@ -81,7 +84,8 @@ func Test_OnNewExpenseCommand_incorrectDate(t *testing.T) {
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
-	model := New(sender, expenseRepo, rateRepository, userRepo, txManager)
+	producer := mocks.NewMockreportProducer(ctrl)
+	model := New(sender, expenseRepo, rateRepository, userRepo, txManager, producer)
 
 	sender.EXPECT().SendMessage("Некорректная дата", nil, int64(123))
 
@@ -101,7 +105,8 @@ func Test_OnNewExpenseCommand_onOk(t *testing.T) {
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
-	model := New(sender, expenseRepo, rateRepository, userRepo, txManager)
+	producer := mocks.NewMockreportProducer(ctrl)
+	model := New(sender, expenseRepo, rateRepository, userRepo, txManager, producer)
 
 	txManager.EXPECT().WithinTransaction(gomock.Any(), gomock.Not(gomock.Nil())).Return(nil)
 	sender.EXPECT().SendMessage("Расход добавлен", nil, int64(123))
@@ -122,7 +127,8 @@ func Test_OnNewExpenseCommand_onLimitExceeded(t *testing.T) {
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
-	model := New(sender, expenseRepo, rateRepository, userRepo, txManager)
+	producer := mocks.NewMockreportProducer(ctrl)
+	model := New(sender, expenseRepo, rateRepository, userRepo, txManager, producer)
 
 	txManager.EXPECT().WithinTransaction(gomock.Any(), gomock.Not(gomock.Nil())).Return(errLimitExceeded)
 	sender.EXPECT().SendMessage("Превышен лимит", nil, int64(123))
@@ -143,7 +149,8 @@ func Test_OnReportCommand_withoutPeriod(t *testing.T) {
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
-	model := New(sender, expenseRepo, rateRepository, userRepo, txManager)
+	producer := mocks.NewMockreportProducer(ctrl)
+	model := New(sender, expenseRepo, rateRepository, userRepo, txManager, producer)
 
 	sender.EXPECT().SendMessage("Необходимо указать период", nil, int64(123))
 
@@ -163,7 +170,8 @@ func Test_OnReportCommand_wrongPeriod(t *testing.T) {
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
-	model := New(sender, expenseRepo, rateRepository, userRepo, txManager)
+	producer := mocks.NewMockreportProducer(ctrl)
+	model := New(sender, expenseRepo, rateRepository, userRepo, txManager, producer)
 
 	sender.EXPECT().SendMessage("Некорректный период", nil, int64(123))
 
@@ -183,7 +191,8 @@ func Test_OnSetCurrency_onOk(t *testing.T) {
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
-	model := New(sender, expenseRepo, rateRepository, userRepo, txManager)
+	producer := mocks.NewMockreportProducer(ctrl)
+	model := New(sender, expenseRepo, rateRepository, userRepo, txManager, producer)
 
 	sender.EXPECT().SendMessage("Выберите валюту", []string{"RUB", "USD", "EUR", "CNY"}, int64(123))
 
@@ -203,7 +212,8 @@ func Test_OnCallbackSetCurrency_onOk(t *testing.T) {
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
-	model := New(sender, expenseRepo, rateRepository, userRepo, txManager)
+	producer := mocks.NewMockreportProducer(ctrl)
+	model := New(sender, expenseRepo, rateRepository, userRepo, txManager, producer)
 
 	txManager.EXPECT().WithinTransaction(gomock.Any(), gomock.Not(gomock.Nil())).Return(nil)
 	sender.EXPECT().SendMessage("Валюта установлена", nil, int64(123))
@@ -224,7 +234,8 @@ func Test_OnCallbackSetCurrency_onUserNotFound(t *testing.T) {
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
-	model := New(sender, expenseRepo, rateRepository, userRepo, txManager)
+	producer := mocks.NewMockreportProducer(ctrl)
+	model := New(sender, expenseRepo, rateRepository, userRepo, txManager, producer)
 
 	txManager.EXPECT().WithinTransaction(gomock.Any(), gomock.Not(gomock.Nil())).Return(errUserNotFound)
 	sender.EXPECT().SendMessage("Такой пользователь не существует", nil, int64(123))
@@ -245,7 +256,8 @@ func Test_OnSetLimit_onOk(t *testing.T) {
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
-	model := New(sender, expenseRepo, rateRepository, userRepo, txManager)
+	producer := mocks.NewMockreportProducer(ctrl)
+	model := New(sender, expenseRepo, rateRepository, userRepo, txManager, producer)
 
 	txManager.EXPECT().WithinTransaction(gomock.Any(), gomock.Not(gomock.Nil())).Return(nil)
 	sender.EXPECT().SendMessage("Лимит установлен", nil, int64(123))
@@ -266,7 +278,8 @@ func Test_OnDelLimit_onOk(t *testing.T) {
 	rateRepository := mocks.NewMockexchangeRateRepository(ctrl)
 	userRepo := mocks.NewMockuserRepository(ctrl)
 	txManager := mocks.NewMocktxManager(ctrl)
-	model := New(sender, expenseRepo, rateRepository, userRepo, txManager)
+	producer := mocks.NewMockreportProducer(ctrl)
+	model := New(sender, expenseRepo, rateRepository, userRepo, txManager, producer)
 
 	txManager.EXPECT().WithinTransaction(gomock.Any(), gomock.Not(gomock.Nil())).Return(nil)
 	sender.EXPECT().SendMessage("Лимит сброшен", nil, int64(123))

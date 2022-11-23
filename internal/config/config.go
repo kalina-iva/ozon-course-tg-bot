@@ -36,14 +36,30 @@ type redis struct {
 	Host string `yaml:"host"`
 }
 
+type reportKafka struct {
+	Topic         string `yaml:"topic"`
+	ConsumerGroup string `yaml:"consumer_group"`
+}
+
+type Kafka struct {
+	BrokerList []string    `yaml:"broker_list"`
+	Report     reportKafka `yaml:"report"`
+}
+
+type reportService struct {
+	ServerAddress string `yaml:"server_address"`
+}
+
 type config struct {
-	Token        string       `yaml:"token"`
-	ExchangeRate exchangeRate `yaml:"exchange_rate"`
-	Database     database     `yaml:"db"`
-	Service      service      `yaml:"service"`
-	Tracing      tracing      `yaml:"tracing"`
-	Metrics      metrics      `yaml:"metrics"`
-	Redis        redis        `yaml:"redis"`
+	Token         string        `yaml:"token"`
+	ExchangeRate  exchangeRate  `yaml:"exchange_rate"`
+	Database      database      `yaml:"db"`
+	Service       service       `yaml:"service"`
+	Tracing       tracing       `yaml:"tracing"`
+	Metrics       metrics       `yaml:"metrics"`
+	Redis         redis         `yaml:"redis"`
+	Kafka         Kafka         `yaml:"kafka"`
+	ReportService reportService `yaml:"report_service"`
 }
 
 type Service struct {
@@ -104,4 +120,12 @@ func (s *Service) MetricsServerAddress() string {
 
 func (s *Service) RedisHost() string {
 	return s.config.Redis.Host
+}
+
+func (s *Service) Kafka() Kafka {
+	return s.config.Kafka
+}
+
+func (s *Service) ReportServerAddress() string {
+	return s.config.ReportService.ServerAddress
 }

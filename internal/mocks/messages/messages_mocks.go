@@ -235,6 +235,43 @@ func (mr *MocktxManagerMockRecorder) WithinTransaction(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WithinTransaction", reflect.TypeOf((*MocktxManager)(nil).WithinTransaction), arg0, arg1)
 }
 
+// MockreportProducer is a mock of reportProducer interface.
+type MockreportProducer struct {
+	ctrl     *gomock.Controller
+	recorder *MockreportProducerMockRecorder
+}
+
+// MockreportProducerMockRecorder is the mock recorder for MockreportProducer.
+type MockreportProducerMockRecorder struct {
+	mock *MockreportProducer
+}
+
+// NewMockreportProducer creates a new mock instance.
+func NewMockreportProducer(ctrl *gomock.Controller) *MockreportProducer {
+	mock := &MockreportProducer{ctrl: ctrl}
+	mock.recorder = &MockreportProducerMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockreportProducer) EXPECT() *MockreportProducerMockRecorder {
+	return m.recorder
+}
+
+// SendReportMessage mocks base method.
+func (m *MockreportProducer) SendReportMessage(userID int64, msg []byte) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SendReportMessage", userID, msg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SendReportMessage indicates an expected call of SendReportMessage.
+func (mr *MockreportProducerMockRecorder) SendReportMessage(userID, msg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendReportMessage", reflect.TypeOf((*MockreportProducer)(nil).SendReportMessage), userID, msg)
+}
+
 // MockmessageSender is a mock of messageSender interface.
 type MockmessageSender struct {
 	ctrl     *gomock.Controller
